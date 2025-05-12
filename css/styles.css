@@ -1213,9 +1213,9 @@ input[type="password"], textarea {
 }
 
 /* ------------------------------------------------------------------- 
- * ## small mobile devices <= 400px
+ * ## small mobile devices <= 500px
  * ------------------------------------------------------------------- */
-@media screen and (max-width: 400px) {
+@media screen and (max-width: 500px) {
     .row .row {
         margin-left: 0;
         margin-right: 0;
