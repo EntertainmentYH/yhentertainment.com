@@ -1120,20 +1120,27 @@ input[type="password"], textarea {
 /* ------------------------------------------------------------------- 
  * ## mobile devices
  * ------------------------------------------------------------------- */
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 800px) {
     .row {
         width: 100%;
         padding-left: 6vw;
         padding-right: 6vw;
     }
     .row .row {
-        margin-left: calc(var(--gutter-mob) * -1);
-        margin-right: calc(var(--gutter-mob) * -1);
-        padding-left: 0;
-        padding-right: 0;
+        margin-left: 0;
+        margin-right: 0;
     }
     .column {
-        padding: 0 var(--gutter-mob);
+        -ms-flex: 0 0 100%;
+        -webkit-box-flex: 0;
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        padding: 0;
+    }
+    .hide-on-mobile-small {
+        display: none;
     }
     .mob-1 {
         -ms-flex: 0 0 8.33333%;
@@ -1215,7 +1222,8 @@ input[type="password"], textarea {
 /* ------------------------------------------------------------------- 
  * ## small mobile devices <= 500px
  * ------------------------------------------------------------------- */
-@media screen and (max-width: 500px) {
+/*
+ @media screen and (max-width: 500px) {
     .row .row {
         margin-left: 0;
         margin-right: 0;
@@ -1233,6 +1241,7 @@ input[type="password"], textarea {
         display: none;
     }
 }
+*/
 
 
 /* ===================================================================
