@@ -1220,9 +1220,9 @@ input[type="password"], textarea {
 }
 
 /* ------------------------------------------------------------------- 
- * ## small mobile devices <= 600px
+ * ## small mobile devices <= 300px
  * ------------------------------------------------------------------- */
- @media screen and (max-width: 600px) {
+ @media screen and (max-width: 300px) {
     .row .row {
         margin-left: 0;
         margin-right: 0;
@@ -1442,9 +1442,9 @@ input[type="password"], textarea {
 }
 
 /* ------------------------------------------------------------------- 
- * ## block grids - small mobile devices <= 400px
+ * ## block grids - small mobile devices <= 500px
  * ------------------------------------------------------------------- */
-@media screen and (max-width: 400px) {
+@media screen and (max-width: 500px) {
     .stack>.column {
         -ms-flex: 0 0 100%;
         -webkit-box-flex: 0;
@@ -3416,7 +3416,7 @@ input[type="button"].btn--primary:focus {
     }
 }
 
-@media screen and (max-width: 400px) {
+@media screen and (max-width: 500px) {
     .s-header__nav {
         padding: 6.8rem 4rem 3.6rem;
     }
