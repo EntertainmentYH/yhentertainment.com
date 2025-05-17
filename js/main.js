@@ -21,7 +21,7 @@
         // More Language Updating
     };
 
-    const defaultLanguage = "zh";
+    const defaultLanguage = "zh-cn";
     const languageFilePath = languageFiles[languageCode] || languageFiles[defaultLanguage];
     fetch(languageFilePath)
         .then(response => {
