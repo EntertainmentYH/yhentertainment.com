@@ -38,11 +38,11 @@
             fetch(languageFiles[defaultLanguage])
                 .then(response => response.text())
                 .then(htmlContent => {
-                    document.getElementById("content").innerHTML = htmlContent;
+                    document.getElementById("top").innerHTML = htmlContent;
                 })
                 .catch(error => {
                     console.error("Failed to load default language file:", error);
-                    document.getElementById("content").innerHTML = "<p>Error loading language content.</p>";
+                    document.getElementById("top").innerHTML = "<p>Error loading language content.</p>";
                 });
         }); /* end Translations */
 
