@@ -31,13 +31,13 @@
             return response.text();
         })
         .then(htmlContent => {
-            document.getElementById("content").innerHTML = htmlContent;
+            document.getElementById("top").innerHTML = htmlContent;
         })
         .catch(error => {
             console.error("Error loading language file:", error);
             fetch(languageFiles[defaultLanguage])
                 .then(response => response.text())
-                .then(htmlContent => {
+                .then(htm lContent => {
                     document.getElementById("content").innerHTML = htmlContent;
                 })
                 .catch(error => {
