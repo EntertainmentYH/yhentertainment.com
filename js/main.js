@@ -37,7 +37,7 @@
             console.error("Error loading language file:", error);
             fetch(languageFiles[defaultLanguage])
                 .then(response => response.text())
-                .then(htm lContent => {
+                .then(htmlContent => {
                     document.getElementById("content").innerHTML = htmlContent;
                 })
                 .catch(error => {
