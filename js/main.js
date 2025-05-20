@@ -18,6 +18,7 @@
     const languageFiles = {
         en: "index-en.html",
         "zh-cn": "index.html",
+        "zh-tw": "index-zhtw.html"
         // More Language Updating
     };
 
