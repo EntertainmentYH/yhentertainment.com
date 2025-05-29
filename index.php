@@ -1,0 +1,748 @@
+<?php
+// 读取配置
+$config_file = __DIR__ . '/configuration.json';
+$config = [];
+if (file_exists($config_file)) {
+    $config = json_decode(file_get_contents($config_file), true);
+}
+
+// 统计文件路径
+$statistics_dir = __DIR__ . '/statistics';
+if (!is_dir($statistics_dir))
+    mkdir($statistics_dir, 0777, true);
+
+$daily_counter_file = $statistics_dir . '/daily_counter.json';
+$total_counter_file = $statistics_dir . '/total_counter.json';
+$online_file = $statistics_dir . '/online.txt';
+
+// 日期
+$today = date('Y-m-d');
+
+// ========== 防刷访问量 ==========
+// 每个IP冷却时间（秒）
+$ip_limit_seconds = 10;
+$ip_limiter_file = $statistics_dir . '/ip_limiter.json';
+$ip_limiter = [];
+if (file_exists($ip_limiter_file)) {
+    $ip_limiter = json_decode(file_get_contents($ip_limiter_file), true);
+    if (!is_array($ip_limiter)) $ip_limiter = [];
+}
+$now_time = time();
+$ip = $_SERVER['REMOTE_ADDR'];
+$can_count = false;
+if (!isset($ip_limiter[$ip]) || ($now_time - $ip_limiter[$ip]) > $ip_limit_seconds) {
+    $can_count = true;
+    $ip_limiter[$ip] = $now_time;
+    file_put_contents($ip_limiter_file, json_encode($ip_limiter, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+}
+
+// ========== 单日访问量 ==========
+$daily_data = [];
+if (file_exists($daily_counter_file)) {
+    $daily_data = json_decode(file_get_contents($daily_counter_file), true);
+    if (!is_array($daily_data))
+        $daily_data = [];
+}
+if (!isset($daily_data[$today])) {
+    $daily_data[$today] = 1;
+} else {
+    $daily_data[$today]++;
+}
+file_put_contents($daily_counter_file, json_encode($daily_data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+$today_count = $daily_data[$today];
+
+// ========== 总访问量 ==========
+$total_count = 0;
+if (file_exists($total_counter_file)) {
+    $total_count = (int) file_get_contents($total_counter_file);
+}
+$total_count++;
+file_put_contents($total_counter_file, $total_count);
+
+// ========== 在线人数 ==========
+$timeout = 300; // 5分钟
+$ip = $_SERVER['REMOTE_ADDR'];
+$now = time();
+$onlines = [];
+if (file_exists($online_file)) {
+    $onlines = file($online_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+}
+$new_onlines = [];
+$found = false;
+foreach ($onlines as $line) {
+    list($online_ip, $last_time) = explode('|', $line);
+    if ($now - $last_time < $timeout) {
+        if ($online_ip == $ip) {
+            $new_onlines[] = "$ip|$now";
+            $found = true;
+        } else {
+            $new_onlines[] = "$online_ip|$last_time";
+        }
+    }
+}
+if (!$found) {
+    $new_onlines[] = "$ip|$now";
+}
+file_put_contents($online_file, implode("\n", $new_onlines));
+$online_count = count($new_onlines);
+
+// ========== 网站运行时长 ==========
+$site_days = '';
+if (!empty($config['site_start_date'])) {
+    $site_days = '1';
+    $start = strtotime($config['site_start_date']);
+    $now = strtotime(date('Y-m-d'));
+
+    if ($start && $now >= $start) {
+        $site_days = '2';
+        $site_days = floor(($now - $start) / 86400) + 1;
+
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html class="no-js" lang="zh-cn">
+
+<head>
+
+    <!--- basic page needs
+    ================================================== -->
+    <meta charset="utf-8">
+    <title>Entertainment_YH</title>
+    <meta name="description" content="Entertainment_YH's Personal Website.">
+    <meta name="author" content="Entertainment_YH">
+    <meta name="keywords"
+        content="Entertainment_YH,YH,YH的网站,YH Community,娱乐之神,YH娱乐之神,娱乐,个人网站,网站,个人,Entertainment,_,Entertainment_YH,God of Entertainment,Entertainment_YH个人网站,娱乐之神的个人网站,娱乐之神的网站">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- mobile specific metas
+    ================================================== -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS
+    ================================================== -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/vendor.css">
+
+    <!-- script
+    ================================================== -->
+    <script defer src="js/vendor/fontawesome-free-6.7.2-web/js/all.js"></script>
+
+    <!-- favicons
+    ================================================== -->
+    <link rel="apple-touch-icon" href="/favicon_io/apple-touch-icon.png">
+    <link rel="android-touch-icon" href="/favicon_io/android-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon_io/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/favicon_io/favicon-16x16.png" sizes="16x16">
+
+</head>
+
+<body id="top" class="ss-preload">
+    <!-- translation
+     ================================================= -->
+    <div id="top"></div>
+
+
+    <!-- preloader
+    ================================================== -->
+    <div id="preloader">
+        <div id="loader"></div>
+    </div>
+
+
+    <!-- header
+    ================================================== -->
+    <header class="s-header">
+        <div class="row s-header__nav-wrap">
+            <nav class="s-header__nav">
+                <ul>
+                    <li class="current"><a class="smoothscroll" href="#hero">主页</a></li>
+                    <li><a class="smoothscroll" href="#about">关于我</a></li>
+                    <li><a class="smoothscroll" href="#resume">公告及其他信息</a></li>
+                    <li><a class="smoothscroll" href="#portfolio">精选图片</a></li>
+                    <li><a class="smoothscroll" href="#testimonials">网站贡献者</a></li>
+                </ul>
+            </nav>
+        </div> <!-- end row -->
+
+        <a class="s-header__menu-toggle" href="#0" title="Menu">
+            <span class="s-header__menu-icon"></span>
+        </a>
+    </header> <!-- end s-header -->
+
+
+    <!-- hero
+    ================================================== -->
+    <section id="hero" class="s-hero target-section">
+
+        <div class="s-hero__bg rellax" data-rellax-speed="-7"></div>
+
+        <div class="row s-hero__content">
+            <div class="column">
+
+                <div class="s-hero__content-about">
+
+                    <h1>你好，我是Entertainment_YH</h1>
+
+                    <h3>
+                        你好，我是Entertainment_YH，或称“恩特忒门特杠外诶吃”，亦或“YH”。此网站是YH的个人网站，用于更多人了解我，分享我，以及与我交流。欢迎来到我的网站！
+                    </h3>
+
+                    <div class="s-hero__content-social">
+                        <a href="https://space.bilibili.com/1977333915?spm_id_from=333.1007.0.0" title="Bilibili主页"><i
+                                class="fa-brands fa-bilibili" aria-hidden="true"></i></a>
+                        <a href="https://github.com/EntertainmentYH/yhentertainment.com" title="GitHub主页"><i
+                                class="fa-brands fa-square-github" aria-hidden="true"></i></a>
+                        <a href="https://steamcommunity.com/id/Entertainment_YH/" title="Steam主页"><i
+                                class="fab fa-steam" aria-hidden="true"></i></a>
+                        <a href="https://www.youtube.com/@Entertainment_CHINESE" title="YouTube频道"><i
+                                class="fab fa-youtube" aria-hidden="true"></i></a>
+                        <a href="https://x.com/Entertainm15252" title="X (Twitter)主页"><i class="fab fa-square-x-twitter"
+                                aria-hidden="true"></i></a>
+                    </div>
+
+                </div> <!-- end s-hero__content-about -->
+
+            </div>
+        </div> <!-- s-hero__content -->
+
+        <div class="s-hero__scroll">
+            <a href="#about" class="s-hero__scroll-link smoothscroll">
+                <span class="scroll-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        style="fill:rgba(0, 0, 0, 1);">
+                        <path
+                            d="M18.707 12.707L17.293 11.293 13 15.586 13 6 11 6 11 15.586 6.707 11.293 5.293 12.707 12 19.414z">
+                        </path>
+                    </svg>
+                </span>
+                <span class="scroll-text">开始吧！</span>
+            </a>
+        </div> <!-- s-hero__scroll -->
+
+    </section> <!-- end s-hero -->
+
+
+    <!-- about
+    ================================================== -->
+    <section id="about" class="s-about target-section">
+
+        <div class="row">
+            <div class="column large-3 tab-12">
+                <img class="s-about__pic" src="https://2.z.wiki/autoupload/20250529/S1u7/690X690/icon.jpg" alt="">
+            </div>
+            <div class="column large-9 tab-12 s-about__content">
+                <h3>关于这个网站</h3>
+                <p>
+                    &emsp;&emsp;这个网站是我于2025年3月30日创建的，我希望它能成为一个有趣的地方，记录我生活中的点点滴滴，以及让更多人了解关于我的基本信息。同时，我随时欢迎各位的反馈，我会不断更新网站内容，让它越来越好，欢迎大家来访问！
+                </p>
+
+                <hr>
+
+                <div class="row s-about__content-bottom">
+                    <div class="column w-1000-stack">
+                        <h3>网站历史</h3>
+                        <p>&emsp;&emsp;上文提到，这个网站是与2025年3月30日创建的，但并不是Entertainment_YH的第一个网站哦！作者初次学习HTML是在2024年，那时候作者需要准备中考，所以网站初期学习并不多。而截至目前（即2025年3月31日），作者在读高中一年级，更新时间可能比较慢，但作者保证会随着时间的推移，网站内容会越来越丰富。（当然，如果你想看原网站，它暂时在上一个项目里躺着，以后可能会公开展览（当作反面教材），但现在来说算是一个废稿，究其原因，因为作者曾不断地尝试新的代码和功能，但并没有认真的学习底层基本代码，导致网站既不美观且BUG极多，所以才有了现在的这个版本。）
+                        </p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row s-about__content-bottom">
+                    <div class="column w-1000-stack">
+                        <h3>联系我</h3>
+                        <p>我的邮箱:&emsp;14899034@qq.com
+                            <br \>
+                            我的QID:&emsp;123YHawa
+                            <br \>
+                            当然，网站中的软件小图标点击后也可以直接跳转至对应的我的主页。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- end row -->
+
+    </section> <!-- end s-about -->
+
+
+    <!-- resume
+    ================================================== -->
+    <section id="resume" class="s-resume target-section">
+
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">announcement</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block">
+
+                    <div class="resume-block__header">
+                        <h4 class="h3">未来的网站更新规划</h4>
+                        <p class="resume-block__header-meta">
+                            <span>Entertainment_YH</span>
+                            <span class="resume-block__header-date">
+                                May 11, 2025 - Present
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                    <ul>
+                        <li>
+                            继续开发新的功能或模块
+                        </li>
+                        <li>
+                            优化用户体验
+                        </li>
+                        <li>
+                            整一些好玩的东西
+                        </li>
+                    </ul>
+                    </p>
+
+                </div> <!-- end resume-block -->
+            </div>
+
+        </div> <!-- post-section -->
+
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">post</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block">
+
+                    <div class="resume-block__header">
+                        <h4 class="h3">我的第一条动态</h4>
+                        <p class="resume-block__header-meta">
+                            <span>Entertainment_YH</span>
+                            <span class="resume-block__header-date">
+                                Published on May 17<sup>th</sup>, 2025
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        这是我的第一条动态，同时也是网站的测试动态，此栏目会在以后放一些有趣的东西，类似于“QQ空间”或者“微信朋友圈”那样，也会转载一些有意思的东西，敬请期待吧！
+                    </p>
+
+                    <div class="resume-block__header">
+                        <h4 class="h3">一个有趣的问题</h4>
+                        <p class="resume-block__header-meta">
+                            <span>Entertainment_YH</span>
+                            <span class="resume-block__header-date">
+                                Published on May 23<sup>th</sup>, 2025
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        想象一下：你有一个可以重置任何东西的遥控器，它可以重置任何东西，无论客观上存在或不存在的东西。例如，重置和某一个人的关系，重置后就如陌生人一样；又或是一个碎掉的玻璃杯，重置后它回到了碎掉前的时间线。你会用这个遥控器来做什么？（只能重置一次，一次后作废）
+                    </p>
+
+                    <div class="resume-block__header">
+                        <h4 class="h3">检讨书</h4>
+                        <p class="resume-block__header-meta">
+                            <span>Entertainment_YH</span>
+                            <span>&bull; 517 characters</span>
+                            <span class="resume-block__header-date">
+                                Published on May 28<sup>th</sup>, 2025
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        尊敬的老师：<br \>
+                        您好！<br \>
+                        &emsp;&emsp;我怀着十分愧疚与懊悔的心情写下此封检讨书，以此来反省今日地理课犯下的错误。<br \>
+                        &emsp;&emsp;今天下午的地理课，因我未能及时准备好课上所需的物品，导致本节地理课效果甚微，对此，我深感抱歉，这样的行为不仅是对老师的不尊重，更是对我自己的不负责任，我没有珍惜在课上学习的大好机会。
+                        <br \>
+                        &emsp;&emsp;同时，此次地理课也反映了我对于学习地理的态度问题，如果我重视地理课，便不可能发生此次事件，我深刻意识到，我不能因为地理这项科目的分数较高而不重视地理，这样做只会导致我的分数下降。
+                        <br \>
+                        &emsp;&emsp;另外，我也认识到，我的行为可能给班级的学习氛围带来了一定的负面影响。作为一名学生，我应该以积极的态度和良好的行为影响身边的同学，而不是因为自己的疏忽给班级带来不好的影响。我向全班同学表示歉意，并承诺将积极改进自己的行为，为营造良好的学习氛围贡献自己的力量。
+                        <br \>
+                        &emsp;&emsp;最后，我深知老师的辛勤付出，为了我们的成长和进步，您付出了无数的心血。我一定会珍惜您给予的每一次学习机会，用实际行动来证明自己的改变和进步。而且，我想对老师表达深刻的歉意，不仅对于今天的问题，也对我之前对地理的轻视。我决心从现在开始，端正自己的学习态度，提前预习地理知识，认真完成地理作业，积极参与地理课堂讨论，提高自己的地理成绩。我在此保证：从今以后会重视学校里的每一项科目，坚决不再犯类似的问题。
+                        <br \>
+                        &emsp;&emsp;此致，
+                        <br \>
+                        敬礼！
+                        <br \>
+                        2025年5月28日
+                    </p>
+
+                </div> <!-- post-section -->
+
+            </div>
+        </div> <!-- s-resume__section -->
+
+
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">partner</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block">
+
+                    <div class="resume-block__header">
+                        <h4 class="h3">Voident_Game</h4>
+                        <p class="resume-block__header-meta">
+                            <span>Voident_Game游戏工作室</span>
+                            <span class="resume-block__header-date">
+                                Established in Jun, 2022
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        *这里放该工作室的简介*
+                    </p>
+
+                </div> <!-- end resume-block -->
+
+                <div class="resume-block">
+
+                    <div class="resume-block__header">
+                        <h4 class="h4">关于Voident_Game</h4>
+                        <p class="resume-block__header-meta">
+                            <span>Voident_Game游戏工作室</span>
+                            <span class="resume-block__header-date">
+                                Established in Jun, 2022
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        *这里放该工作室的我的世界服务器*
+                    </p>
+
+                </div> <!-- end resume-block -->
+            </div>
+        </div> <!-- s-resume__section -->
+
+
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">language<br \>localization</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block">
+
+                    <p>
+                        所有翻译均为机翻，翻译可能有误，请以简体中文位原文对照。
+                    </p>
+
+                    <ul class="skill-bars-fat">
+                        <li>
+                            <div class="progress percent100"></div>
+                            <strong style="color: rgb(55, 177, 55);">
+                                简体中文/people's republic of china
+                            </strong>
+                        </li>
+                        <li>
+                            <div class="progress percent85"></div>
+                            <strong>繁體中文/hong kong, taiwan, macau (PRC)</strong>
+                        </li>
+                        <li>
+                            <div class="progress percent85"></div>
+                            <strong>
+                                english/united states
+                            </strong>
+                        </li>
+                        <li>
+                            <div class="progress percent5"></div>
+                            <strong>Русский язык/russian federation</strong>
+                        </li>
+                        <li>
+                            <div class="progress percent5"></div>
+                            <strong>Deutsch/germany</strong>
+                        </li>
+                        <li>
+                            <div class="progress percent5"></div>
+                            <strong>日本語/japan</strong>
+                        </li>
+                        <li>
+                            <div class="progress percent5"></div>
+                            <strong>한국어/republic of korea</strong>
+                        </li>
+                        <li>
+                            <div class="progress percent5"></div>
+                            <strong>uygur/xinjiang, PRC</strong>
+                        </li>
+                    </ul>
+
+                </div> <!-- end resume-block -->
+
+            </div>
+        </div> <!-- s-resume__section -->
+
+    </section> <!-- end s-resume -->
+
+
+    <!-- portfolio
+    ================================================== -->
+    <section id="portfolio" class="s-portfolio target-section">
+
+        <div class="row s-portfolio__header">
+            <div class="column large-12">
+                <h3>精选图片</h3>
+            </div>
+        </div>
+
+        <div class="row collapse block-large-1-4 block-medium-1-3 block-tab-1-2 block-500-stack folio-list">
+
+            <div class="column folio-item">
+                <a href="#modal-01" class="folio-item__thumb">
+                    <img src="https://cdn.z.wiki/autoupload/20250529/zftP/964X964/laifu.jpg"
+                        srcset="https://cdn.z.wiki/autoupload/20250529/zftP/964X964/laifu.jpg" alt="图片未加载，请联系网站管理员。">
+                </a>
+            </div> <!-- end folio-item -->
+
+            <div class="column folio-item">
+                <a href="#modal-02" class="folio-item__thumb">
+                    <img src="https://2.z.wiki/autoupload/20250529/tk6C/2679X2679/7430562FEACC6D1C7AE435774265C090.png"
+                        srcset="https://2.z.wiki/autoupload/20250529/tk6C/2679X2679/7430562FEACC6D1C7AE435774265C090.png"
+                        alt="图片未加载，请联系网站管理员。">
+                </a>
+            </div> <!-- end folio-item -->
+
+            <div class="column folio-item">
+                <a href="#modal-03" class="folio-item__thumb">
+                    <img src="https://2.z.wiki/autoupload/20250529/5jzL/3024X3024/D899347890A7B9B8AE0587A353697366.jpg"
+                        srcset="https://2.z.wiki/autoupload/20250529/5jzL/3024X3024/D899347890A7B9B8AE0587A353697366.jpg"
+                        alt="图片未加载，请联系网站管理员。">
+                </a>
+            </div> <!-- end folio-item -->
+
+            <div class="column folio-item">
+                <a href="#modal-04" class="folio-item__thumb">
+                    <img src="https://2.z.wiki/autoupload/20250529/WGGJ/828X828/thunder.jpg"
+                        srcset="https://2.z.wiki/autoupload/20250529/WGGJ/828X828/thunder.jpg" alt="图片未加载，请联系网站管理员。">
+                </a>
+            </div> <!-- end folio-item -->
+
+        </div> <!-- end folio-list -->
+
+
+        <!-- Modal Templates Popup
+        =========================================================== -->
+        <div id="modal-01" hidden>
+            <div class="modal-popup">
+                <img src="https://cdn.z.wiki/autoupload/20250529/zftP/964X964/laifu.jpg" alt="来福" />
+
+                <div class="modal-popup__desc">
+                    <h5>来福</h5>
+                    <p>此为本网站作者于2021年~2022年中喂养的小狗，属银狐，后因扰民被迫送人，对此非常不舍。故此，在此纪念来福。</p>
+                    <ul class="modal-popup__cat">
+                        <li>2022年6月7日</li>
+                        <li>动物</li>
+                        <li>中国 河南省 郑州市 巩义市</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div> <!-- end modal -->
+
+        <div id="modal-02" hidden>
+            <div class="modal-popup">
+                <img src="https://2.z.wiki/autoupload/20250529/tk6C/2679X2679/7430562FEACC6D1C7AE435774265C090.png"
+                    alt="" />
+
+                <div class="modal-popup__desc">
+                    <h5>仙米国家森林公园</h5>
+                    <p>一座美丽的雪山位于仙米国家森林公园，祁连山脉。我在2023年有幸去过两次，讲真的，它很令我震惊，在海拔3400米的中国一二阶梯分界线处，它就这样矗立在此，象征着青藏高原的雄伟壮阔。</p>
+                    <ul class="modal-popup__cat">
+                        <li>2023年10月29日</li>
+                        <li>自然风景</li>
+                        <li>中国 甘肃省 仙米国家森林公园</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div> <!-- end modal -->
+
+        <div id="modal-03" hidden>
+            <div class="modal-popup">
+                <img src="https://2.z.wiki/autoupload/20250529/5jzL/3024X3024/D899347890A7B9B8AE0587A353697366.jpg"
+                    alt="" />
+
+                <div class="modal-popup__desc">
+                    <h5>塔克拉玛干沙漠</h5>
+                    <p>身处亚洲深处的褶皱中，矗立的石碑前，极目远眺，塔克拉玛干沙漠以最原始的形态扑面而来。浩荡的沙海与苍穹在远处相接，孤烟与落日交相辉映。沙丘如凝固的惊涛，每一道波纹都镌刻着万年风雨，枯黄的胡阳叙说着楼兰古国的兴衰。
+                        ————陨落之星（网站贡献者提供文案）</p>
+                    <ul class="modal-popup__cat">
+                        <li>2023年9月30日</li>
+                        <li>自然风景</li>
+                        <li>中国 新疆维吾尔自治区 阿克苏市 阿拉尔市</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div> <!-- end modal -->
+
+        <div id="modal-04" hidden>
+            <div class="modal-popup">
+                <img src="https://2.z.wiki/autoupload/20250529/WGGJ/828X828/thunder.jpg" alt="" />
+
+                <div class="modal-popup__desc">
+                    <h5>闪电</h5>
+                    <p>偶然间（并非偶然）拍到的闪电，但总有人说我是P的照片？？</p>
+                    <ul class="modal-popup__cat">
+                        <li>2024年8月20日</li>
+                        <li>自然风景</li>
+                        <li>中国 河南省 郑州市 巩义市</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div> <!-- end modal -->
+
+
+
+
+    </section> <!-- end s-portfolio -->
+
+
+    <!-- testimonials
+    ================================================== -->
+    <section id="testimonials" class="s-testimonials target-section">
+
+        <div class="s-testimonials__bg"></div>
+
+        <div class="row s-testimonials__header">
+            <div class="column large-12">
+                <h3>网站贡献者</h3>
+            </div>
+        </div>
+
+        <div class="row s-testimonials__content">
+
+            <div class="column">
+
+                <div class="swiper-container testimonial-slider">
+
+                    <div class="swiper-wrapper">
+
+                        <div class="testimonial-slider__slide swiper-slide">
+                            <div class="testimonial-slider__author">
+                                <img src="http://q1.qlogo.cn/g?b=qq&nk=3329261270&s=100" alt="Author image"
+                                    class="testimonial-slider__avatar">
+                                <cite class="testimonial-slider__cite">
+                                    <strong>Entertainment_YH</strong>
+                                    <span>作者</span>
+                                </cite>
+                            </div>
+                            <p>
+                                本网站的作者，没什么可写的，你说是吧？
+                            </p>
+                        </div> <!-- end testimonial-slider__slide -->
+
+                        <div class="testimonial-slider__slide swiper-slide">
+                            <div class="testimonial-slider__author">
+                                <img src="http://q1.qlogo.cn/g?b=qq&nk=439751420&s=100" alt="Author image"
+                                    class="testimonial-slider__avatar">
+                                <cite class="testimonial-slider__cite">
+                                    <strong>QN</strong>
+                                    <span>Voident_Game游戏工作室创始人</span>
+                                </cite>
+                            </div>
+                            <p>
+                                打瓦的，本网站服务器提供者，感谢您对本网站的贡献！
+                            </p>
+                        </div> <!-- end testimonial-slider__slide -->
+
+                        <div class="testimonial-slider__slide swiper-slide">
+                            <div class="testimonial-slider__author">
+                                <img src="https://2.z.wiki/autoupload/20250529/cxZ5/1024X1024/fallen-star.jpeg"
+                                    alt="Author image" class="testimonial-slider__avatar">
+                                <cite class="testimonial-slider__cite">
+                                    <strong>陨落之星</strong>
+                                    <span>作者的某个朋友</span>
+                                </cite>
+                            </div>
+                            <p>
+                                精选图片中的文案编辑者，感谢您对本网站的贡献！
+                            </p>
+                        </div> <!-- end testimonial-slider__slide -->
+
+                        <div class="testimonial-slider__slide swiper-slide">
+                            <div class="testimonial-slider__author">
+                                <img src="https://cdn.z.wiki/autoupload/20250529/3zZ6/474X483/you.png"
+                                    alt="Author image" class="testimonial-slider__avatar">
+                                <cite class="testimonial-slider__cite">
+                                    <strong>所有本网站的访客</strong>
+                                    <span>献给世界上唯一的您</span>
+                                </cite>
+                            </div>
+                            <p>
+                                感谢您访问此网站！
+                            </p>
+                        </div> <!-- end testimonial-slider__slide -->
+
+                    </div> <!-- end testimonial slider swiper-wrapper -->
+
+                    <div class="swiper-pagination"></div>
+
+                </div> <!-- end swiper-container -->
+
+            </div> <!-- end column -->
+
+        </div> <!-- end row -->
+
+    </section> <!-- end s-testimonials -->
+
+
+    <!-- footer
+    ================================================== -->
+    <footer class="s-footer">
+        <div class="row">
+            <div class="column large-4 medium-6 w-1000-stack s-footer__social-block">
+                <ul class="s-footer__social">
+                    <li><a href="https://space.bilibili.com/1977333915?spm_id_from=333.1007.0.0" title="Bilibili主页"><i
+                                class="fa-brands fa-bilibili" aria-hidden="true"></i></a></li>
+                    <li><a href="https://github.com/EntertainmentYH/yhentertainment.com" title="GitHub主页"><i
+                                class="fa-brands fa-square-github" aria-hidden="true"></i></a></li>
+                    <li><a href="https://steamcommunity.com/id/Entertainment_YH/" title="Steam主页"><i
+                                class="fab fa-steam" aria-hidden="true"></i></a></li>
+                    <li><a href="https://www.youtube.com/@Entertainment_CHINESE" title="YouTube频道"><i
+                                class="fab fa-youtube" aria-hidden="true"></i></a></li>
+                    <li><a href="https://x.com/Entertainm15252" title="X (Twitter)主页"><i class="fab fa-square-x-twitter"
+                                aria-hidden="true"></i></a></li>
+                </ul>
+            </div>
+
+            <div class="column large-7 medium-6 w-1000-stack ss-copyright">
+                <span>本网站最终解释权归Entertainment_YH所有</span>
+                <span><a target="_blank" href="" title="备案号">此处留备案号</a></span></span>
+            </div>
+
+            <div class="column large-12 medium-8 w-1000-stack ss-statistics">
+                <span>今天的网站一共有 <?php echo $today_count; ?> 人来过</span>
+                <span>总共有 <?php echo $total_count; ?> 人来过</span>
+                <span>现在有 <?php echo $online_count; ?> 人在看我的网站</span>
+                <span>这个网站已经陪你走过了 <?php echo $site_days; ?> 个日日夜夜</span>
+            </div>
+
+
+            <div class="ss-go-top">
+                <a class="smoothscroll" title="Back to Top" href="#top">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M6 4h12v2H6zm5 10v6h2v-6h5l-6-6-6 6z" />
+                    </svg>
+                </a>
+            </div> <!-- end ss-go-top -->
+
+    </footer>
+
+
+    <!-- Java Script
+    ================================================== -->
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
+
+</body>
+
+</html>

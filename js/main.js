@@ -9,10 +9,7 @@
 
     html.className = html.className.replace(/\bno-js\b/g, '') + ' js ';
 
-    /*================================================================
-     * Translation ( Available: zh-cn & en )
-     * 
-     *================================================================ */
+    /*
     const userLanguage = navigator.language || navigator.languages[0];
     const languageCode = userLanguage.toLowerCase();
     const languageFiles = {
@@ -45,7 +42,7 @@
                     console.error("Failed to load default language file:", error);
                     document.getElementById("top").innerHTML = "<p>Error loading language content.</p>";
                 });
-        }); /* end Translations */
+        });*/
 
     /* Preloader
      * -------------------------------------------------- */
