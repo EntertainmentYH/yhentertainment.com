@@ -11,9 +11,9 @@ $statistics_dir = __DIR__ . '/statistics';
 if (!is_dir($statistics_dir))
     mkdir($statistics_dir, 0777, true);
 
-$daily_counter_file = $statistics_dir . '/daily_counter.json';
-$total_counter_file = $statistics_dir . '/total_counter.json';
-$online_file = $statistics_dir . '/online.txt';
+$daily_counter_file = "{$statistics_dir}/daily_counter.json";
+$total_counter_file = "{$statistics_dir}/total_counter.json";
+$online_file = "{$statistics_dir}/online.txt";
 
 // 日期
 $today = date('Y-m-d');
@@ -21,11 +21,12 @@ $today = date('Y-m-d');
 // ========== 防刷访问量 ==========
 // 每个IP冷却时间（秒）
 $ip_limit_seconds = 10;
-$ip_limiter_file = $statistics_dir . '/ip_limiter.json';
+$ip_limiter_file = "{$statistics_dir}/ip_limiter.json";
 $ip_limiter = [];
 if (file_exists($ip_limiter_file)) {
     $ip_limiter = json_decode(file_get_contents($ip_limiter_file), true);
-    if (!is_array($ip_limiter)) $ip_limiter = [];
+    if (!is_array($ip_limiter))
+        $ip_limiter = [];
 }
 $now_time = time();
 $ip = $_SERVER['REMOTE_ADDR'];
@@ -43,10 +44,13 @@ if (file_exists($daily_counter_file)) {
     if (!is_array($daily_data))
         $daily_data = [];
 }
-if (!isset($daily_data[$today])) {
-    $daily_data[$today] = 1;
-} else {
-    $daily_data[$today]++;
+switch (true) {
+    case !isset($daily_data[$today]):
+        $daily_data[$today] = 1;
+        break;
+    default:
+        $daily_data[$today]++;
+        break;
 }
 file_put_contents($daily_counter_file, json_encode($daily_data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 $today_count = $daily_data[$today];
@@ -60,23 +64,26 @@ $total_count++;
 file_put_contents($total_counter_file, $total_count);
 
 // ========== 在线人数 ==========
-$timeout = 300; // 5分钟
+$timeout = 1; // 1s
 $ip = $_SERVER['REMOTE_ADDR'];
 $now = time();
 $onlines = [];
-if (file_exists($online_file)) {
-    $onlines = file($online_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-}
 $new_onlines = [];
 $found = false;
-foreach ($onlines as $line) {
-    list($online_ip, $last_time) = explode('|', $line);
-    if ($now - $last_time < $timeout) {
-        if ($online_ip == $ip) {
-            $new_onlines[] = "$ip|$now";
-            $found = true;
-        } else {
-            $new_onlines[] = "$online_ip|$last_time";
+if (file_exists($online_file)) {
+    $onlines = file($online_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($onlines as $line) {
+        [$online_ip, $last_time] = explode('|', $line);
+        if ($now - $last_time < $timeout) {
+            if ($online_ip == $ip) {
+                if (!$found) { // 只更新一次当前IP
+                    $new_onlines[] = "$ip|$now";
+                    $found = true;
+                }
+                // 如果已经添加过当前IP，则跳过
+            } else {
+                $new_onlines[] = "$online_ip|$last_time";
+            }
         }
     }
 }
@@ -94,9 +101,7 @@ if (!empty($config['site_start_date'])) {
     $now = strtotime(date('Y-m-d'));
 
     if ($start && $now >= $start) {
-        $site_days = '2';
         $site_days = floor(($now - $start) / 86400) + 1;
-
     }
 }
 ?>
@@ -280,12 +285,26 @@ if (!empty($config['site_start_date'])) {
             <div class="column large-9 tab-12">
                 <div class="resume-block">
 
+                <div class="resume-block__header">
+                        <h4 class="h3">静态网站 => 动态网站</h4>
+                        <p class="resume-block__header-meta">
+                            <span>Entertainment_YH</span>
+                            <span class="resume-block__header-date">
+                                May 30<sup>th</sup>, 2025 - Present
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                    &emsp;&emsp;我为我的网站添加了一个动态功能，你可以在网站最下面实时查看这个网站的一些信息，当然，如果我的技术力量足够的话，我会添加在线动态功能，即让访客也可以发布动态。<br \>
+                    </p>
+
                     <div class="resume-block__header">
                         <h4 class="h3">未来的网站更新规划</h4>
                         <p class="resume-block__header-meta">
                             <span>Entertainment_YH</span>
                             <span class="resume-block__header-date">
-                                May 11, 2025 - Present
+                                May 11<sup>th</sup>, 2025 - Present
                             </span>
                         </p>
                     </div>

@@ -9,41 +9,6 @@
 
     html.className = html.className.replace(/\bno-js\b/g, '') + ' js ';
 
-    /*
-    const userLanguage = navigator.language || navigator.languages[0];
-    const languageCode = userLanguage.toLowerCase();
-    const languageFiles = {
-        en: "index-en.html",
-        "zh-cn": "index.html",
-        "zh-tw": "index-zhtw.html"
-        // More Language Updating
-    };
-
-    const defaultLanguage = "zh-cn";
-    const languageFilePath = languageFiles[languageCode] || languageFiles[defaultLanguage];
-    fetch(languageFilePath)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to load language file");
-            }
-            return response.text();
-        })
-        .then(htmlContent => {
-            document.getElementById("top").innerHTML = htmlContent;
-        })
-        .catch(error => {
-            console.error("Error loading language file:", error);
-            fetch(languageFiles[defaultLanguage])
-                .then(response => response.text())
-                .then(htmlContent => {
-                    document.getElementById("top").innerHTML = htmlContent;
-                })
-                .catch(error => {
-                    console.error("Failed to load default language file:", error);
-                    document.getElementById("top").innerHTML = "<p>Error loading language content.</p>";
-                });
-        });*/
-
     /* Preloader
      * -------------------------------------------------- */
     const ssPreloader = function () {
