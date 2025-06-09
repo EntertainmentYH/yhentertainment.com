@@ -155,9 +155,11 @@
                  * an selector
                  */
                 if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-                    document.querySelector(".s-header__nav a[href*=" + sectionId + "]").parentNode.classList.add("current");
+                    let link = document.querySelector(".s-header__nav a[href*=" + sectionId + "]");
+                    if (link && link.parentNode) link.parentNode.classList.add("current");
                 } else {
-                    document.querySelector(".s-header__nav a[href*=" + sectionId + "]").parentNode.classList.remove("current");
+                    let link = document.querySelector(".s-header__nav a[href*=" + sectionId + "]");
+                    if (link && link.parentNode) link.parentNode.classList.remove("current");
                 }
             });
         }
@@ -314,3 +316,12 @@
     })();
 
 })(document.documentElement);
+
+fetch('https://www.ipplus360.com/getIP')
+    .then(res => res.json())
+    .then(data => {
+        // 例如 data.country_code = "CN", "US", "TW" 等
+        if (data && data.country_code) {
+            document.cookie = "country_code=" + data.country_code + ";path=/";
+        }
+    });

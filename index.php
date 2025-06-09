@@ -104,10 +104,105 @@ if (!empty($config['site_start_date'])) {
         $site_days = floor(($now - $start) / 86400) + 1;
     }
 }
+
+// 语言代码自动检测
+$lang_code = 'zh-cn'; // 默认
+
+
+
+function getUserIP()
+{
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        return $_SERVER['HTTP_CLIENT_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        return explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+    } else {
+        return $_SERVER['REMOTE_ADDR'];
+    }
+}
+
+$ip = getUserIP();
+
+// 判断是否为本地地址
+if ($ip === '127.0.0.1' || $ip === '::1') {
+    // 本地开发环境，设置默认语言
+    $lang_code = 'en';  // 或者你想默认的语言
+    echo "本地 IP，使用默认语言：$lang_code";
+} else {
+    // 发起请求
+    $url = "https://v.api.aa1.cn/api/chinaip/?ip=" . urlencode($ip);
+    $response = @file_get_contents($url);  // 加上 @ 抑制警告
+
+    if ($response !== false) {
+        // 提取 body 中的 JSON
+        preg_match('/<body[^>]*>(.*?)<\/body>/is', $response, $matches);
+        $json = isset($matches[1]) ? trim($matches[1]) : null;
+
+        $data = json_decode($json, true);
+
+        if ($data !== null && isset($data['data']['Cc_Code'])) {
+            $cc = strtoupper($data['data']['Cc_Code']);
+
+            if ($cc === 'CN') {
+                $lang_code = 'zh-cn';
+            } elseif ($cc === 'US') {
+                $lang_code = 'en';
+            } elseif (in_array($cc, ['TW', 'HK', 'MO'])) {
+                $lang_code = 'zh-tw';
+            } else {
+                $lang_code = 'en';
+            }
+
+            echo "检测到语言：$lang_code";
+        } else {
+            echo "API 返回无效，语言设置为默认：en";
+            $lang_code = 'en';
+        }
+    } else {
+        echo "API 请求失败，语言设置为默认：en";
+        $lang_code = 'en';
+    }
+}
+
+
+
+
+
+// // 1. 优先用cookie中的country_code
+// if (isset($_COOKIE['country_code'])) {
+//     $country_code = strtolower($_COOKIE['country_code']);
+//     if ($country_code === 'us') {
+//         $lang_code = 'en';
+//     } elseif ($country_code === 'tw' || $country_code === 'hk' || $country_code === 'mo') {
+//         $lang_code = 'zh-tw';
+//     } elseif ($country_code === 'cn') {
+//         $lang_code = 'zh-cn';
+//     }
+// } else {
+//     // 2. 否则用浏览器语言
+//     $accept_lang = strtolower($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '');
+//     if (strpos($accept_lang, 'en') === 0) {
+//         $lang_code = 'en';
+//     } elseif (strpos($accept_lang, 'zh-tw') === 0 || strpos($accept_lang, 'zh-hk') === 0) {
+//         $lang_code = 'zh-tw';
+//     }
+// }
+
+
+
+
+
+// 读取对应语言文件
+$lang_file = __DIR__ . "/languages/{$lang_code}.json";
+if (!file_exists($lang_file)) {
+    $lang_file = __DIR__ . "/languages/zh-cn.json"; // 回退
+}
+$lang = json_decode(@file_get_contents($lang_file), true) ?? [];
+
 ?>
 
 <!DOCTYPE html>
-<html class="no-js" lang="zh-cn">
+<html class="no-js" lang="<?php echo htmlspecialchars($lang_code); ?>">
 
 <head>
 
@@ -145,18 +240,7 @@ if (!empty($config['site_start_date'])) {
 
 </head>
 
-<body id="top" class="ss-preload">
-    <!-- translation
-     ================================================= -->
-    <div id="top"></div>
-
-
-    <!-- preloader
-    ================================================== -->
-    <div id="preloader">
-        <div id="loader"></div>
-    </div>
-
+<body>
 
     <!-- header
     ================================================== -->
@@ -164,12 +248,28 @@ if (!empty($config['site_start_date'])) {
         <div class="row s-header__nav-wrap">
             <nav class="s-header__nav">
                 <ul>
-                    <li class="current"><a class="smoothscroll" href="#hero">主页</a></li>
-                    <li><a class="smoothscroll" href="#about">关于我</a></li>
-                    <li><a class="smoothscroll" href="#resume">公告及其他信息</a></li>
-                    <li><a class="smoothscroll" href="#portfolio">精选图片</a></li>
-                    <li><a class="smoothscroll" href="#testimonials">网站贡献者</a></li>
+                    <li<?php if ($lang_code === 'zh-cn')
+                        echo ' class="current"'; ?>>
+                        <a href="?lang=zh-cn">简体中文</a>
+                        </li>
+                        <li<?php if ($lang_code === 'en')
+                            echo ' class="current"'; ?>>
+                            <a href="?lang=en">English</a>
+                            </li>
                 </ul>
+                <?php
+                // 语言切换处理
+                if (isset($_GET['lang'])) {
+                    $lang = strtolower($_GET['lang']);
+                    if (in_array($lang, ['zh-cn', 'en', 'zh-tw'])) {
+                        setcookie('country_code', $lang === 'en' ? 'us' : ($lang === 'zh-tw' ? 'tw' : 'cn'), time() + 3600 * 24 * 30, '/');
+                        // 跳转去除 ?lang 参数
+                        $url = strtok($_SERVER["REQUEST_URI"], '?');
+                        header("Location: $url");
+                        exit;
+                    }
+                }
+                ?>
             </nav>
         </div> <!-- end row -->
 
@@ -190,10 +290,10 @@ if (!empty($config['site_start_date'])) {
 
                 <div class="s-hero__content-about">
 
-                    <h1>你好，我是Entertainment_YH</h1>
+                    <h1> <?php echo htmlspecialchars($lang['hello-title'] ?? ''); ?></h1>
 
                     <h3>
-                        你好，我是Entertainment_YH，或称“恩特忒门特杠外诶吃”，亦或“YH”。此网站是YH的个人网站，用于更多人了解我，分享我，以及与我交流。欢迎来到我的网站！
+                        <?php echo htmlspecialchars($lang['title-description'] ?? ''); ?>
                     </h3>
 
                     <div class="s-hero__content-social">
@@ -224,7 +324,7 @@ if (!empty($config['site_start_date'])) {
                         </path>
                     </svg>
                 </span>
-                <span class="scroll-text">开始吧！</span>
+                <span class="scroll-text"><?php echo htmlspecialchars($lang['scroll-text'] ?? ''); ?></span>
             </a>
         </div> <!-- s-hero__scroll -->
 
@@ -240,18 +340,17 @@ if (!empty($config['site_start_date'])) {
                 <img class="s-about__pic" src="https://2.z.wiki/autoupload/20250529/S1u7/690X690/icon.jpg" alt="">
             </div>
             <div class="column large-9 tab-12 s-about__content">
-                <h3>关于这个网站</h3>
+                <h3><?php echo htmlspecialchars($lang['about-web'] ?? ''); ?></h3>
                 <p>
-                    &emsp;&emsp;这个网站是我于2025年3月30日创建的，我希望它能成为一个有趣的地方，记录我生活中的点点滴滴，以及让更多人了解关于我的基本信息。同时，我随时欢迎各位的反馈，我会不断更新网站内容，让它越来越好，欢迎大家来访问！
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['about-web-text'] ?? ''); ?>
                 </p>
 
                 <hr>
 
                 <div class="row s-about__content-bottom">
                     <div class="column w-1000-stack">
-                        <h3>网站历史</h3>
-                        <p>&emsp;&emsp;上文提到，这个网站是与2025年3月30日创建的，但并不是Entertainment_YH的第一个网站哦！作者初次学习HTML是在2024年，那时候作者需要准备中考，所以网站初期学习并不多。而截至目前（即2025年3月31日），作者在读高中一年级，更新时间可能比较慢，但作者保证会随着时间的推移，网站内容会越来越丰富。（当然，如果你想看原网站，它暂时在上一个项目里躺着，以后可能会公开展览（当作反面教材），但现在来说算是一个废稿，究其原因，因为作者曾不断地尝试新的代码和功能，但并没有认真的学习底层基本代码，导致网站既不美观且BUG极多，所以才有了现在的这个版本。）
-                        </p>
+                        <h3><?php echo htmlspecialchars($lang['web-history'] ?? ''); ?></h3>
+                        <p>&emsp;&emsp;<?php echo htmlspecialchars($lang['web-history-text'] ?? ''); ?></p>
                     </div>
                 </div>
 
@@ -259,12 +358,17 @@ if (!empty($config['site_start_date'])) {
 
                 <div class="row s-about__content-bottom">
                     <div class="column w-1000-stack">
-                        <h3>联系我</h3>
-                        <p>我的邮箱:&emsp;14899034@qq.com
+                        <h3><?php echo htmlspecialchars($lang['contact-me'] ?? ''); ?></h3>
+                        <p>
+                            <?php echo htmlspecialchars($lang['my-email-text'] ?? ''); ?>
+                            &emsp;
+                            <?php echo htmlspecialchars($lang['my-email'] ?? ''); ?>
                             <br \>
-                            我的QID:&emsp;123YHawa
+                            <?php echo htmlspecialchars($lang['my-qid-text'] ?? ''); ?>
+                            &emsp;
+                            <?php echo htmlspecialchars($lang['my-qid'] ?? ''); ?>
                             <br \>
-                            当然，网站中的软件小图标点击后也可以直接跳转至对应的我的主页。
+                            <?php echo htmlspecialchars($lang['other-info'] ?? ''); ?>
                         </p>
                     </div>
                 </div>
@@ -284,11 +388,11 @@ if (!empty($config['site_start_date'])) {
             </div>
             <div class="column large-9 tab-12">
                 <div class="resume-block">
-
-                <div class="resume-block__header">
-                        <h4 class="h3">静态网站 => 动态网站</h4>
+                    <!-- announcement-code 002 -->
+                    <div class="resume-block__header">
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['announcement002-title'] ?? ''); ?></h4>
                         <p class="resume-block__header-meta">
-                            <span>Entertainment_YH</span>
+                            <span><?php echo htmlspecialchars($lang['ID'] ?? ''); ?></span>
                             <span class="resume-block__header-date">
                                 May 30<sup>th</sup>, 2025 - Present
                             </span>
@@ -296,13 +400,14 @@ if (!empty($config['site_start_date'])) {
                     </div>
 
                     <p>
-                    &emsp;&emsp;我为我的网站添加了一个动态功能，你可以在网站最下面实时查看这个网站的一些信息，当然，如果我的技术力量足够的话，我会添加在线动态功能，即让访客也可以发布动态。<br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['announcement002-text'] ?? ''); ?><br \>
                     </p>
 
+                    <!-- announcement-code 001 -->
                     <div class="resume-block__header">
-                        <h4 class="h3">未来的网站更新规划</h4>
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['announcement001-title'] ?? ''); ?></h4>
                         <p class="resume-block__header-meta">
-                            <span>Entertainment_YH</span>
+                            <span><?php echo htmlspecialchars($lang['ID'] ?? ''); ?></span>
                             <span class="resume-block__header-date">
                                 May 11<sup>th</sup>, 2025 - Present
                             </span>
@@ -312,13 +417,13 @@ if (!empty($config['site_start_date'])) {
                     <p>
                     <ul>
                         <li>
-                            继续开发新的功能或模块
+                            <?php echo htmlspecialchars($lang['announcement001-text-1'] ?? ''); ?>
                         </li>
                         <li>
-                            优化用户体验
+                            <?php echo htmlspecialchars($lang['announcement001-text-2'] ?? ''); ?>
                         </li>
                         <li>
-                            整一些好玩的东西
+                            <?php echo htmlspecialchars($lang['announcement001-text-3'] ?? ''); ?>
                         </li>
                     </ul>
                     </p>
@@ -336,21 +441,7 @@ if (!empty($config['site_start_date'])) {
                 <div class="resume-block">
 
                     <div class="resume-block__header">
-                        <h4 class="h3">我的第一条动态</h4>
-                        <p class="resume-block__header-meta">
-                            <span>Entertainment_YH</span>
-                            <span class="resume-block__header-date">
-                                Published on May 17<sup>th</sup>, 2025
-                            </span>
-                        </p>
-                    </div>
-
-                    <p>
-                        这是我的第一条动态，同时也是网站的测试动态，此栏目会在以后放一些有趣的东西，类似于“QQ空间”或者“微信朋友圈”那样，也会转载一些有意思的东西，敬请期待吧！
-                    </p>
-
-                    <div class="resume-block__header">
-                        <h4 class="h3">一个有趣的问题</h4>
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['post002-title'] ?? ''); ?></h4>
                         <p class="resume-block__header-meta">
                             <span>Entertainment_YH</span>
                             <span class="resume-block__header-date">
@@ -360,37 +451,21 @@ if (!empty($config['site_start_date'])) {
                     </div>
 
                     <p>
-                        想象一下：你有一个可以重置任何东西的遥控器，它可以重置任何东西，无论客观上存在或不存在的东西。例如，重置和某一个人的关系，重置后就如陌生人一样；又或是一个碎掉的玻璃杯，重置后它回到了碎掉前的时间线。你会用这个遥控器来做什么？（只能重置一次，一次后作废）
+                        <?php echo htmlspecialchars($lang['post002-text'] ?? ''); ?>
                     </p>
 
                     <div class="resume-block__header">
-                        <h4 class="h3">检讨书</h4>
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['post001-title'] ?? ''); ?></h4>
                         <p class="resume-block__header-meta">
                             <span>Entertainment_YH</span>
-                            <span>&bull; 517 characters</span>
                             <span class="resume-block__header-date">
-                                Published on May 28<sup>th</sup>, 2025
+                                Published on May 17<sup>th</sup>, 2025
                             </span>
                         </p>
                     </div>
 
                     <p>
-                        尊敬的老师：<br \>
-                        您好！<br \>
-                        &emsp;&emsp;我怀着十分愧疚与懊悔的心情写下此封检讨书，以此来反省今日地理课犯下的错误。<br \>
-                        &emsp;&emsp;今天下午的地理课，因我未能及时准备好课上所需的物品，导致本节地理课效果甚微，对此，我深感抱歉，这样的行为不仅是对老师的不尊重，更是对我自己的不负责任，我没有珍惜在课上学习的大好机会。
-                        <br \>
-                        &emsp;&emsp;同时，此次地理课也反映了我对于学习地理的态度问题，如果我重视地理课，便不可能发生此次事件，我深刻意识到，我不能因为地理这项科目的分数较高而不重视地理，这样做只会导致我的分数下降。
-                        <br \>
-                        &emsp;&emsp;另外，我也认识到，我的行为可能给班级的学习氛围带来了一定的负面影响。作为一名学生，我应该以积极的态度和良好的行为影响身边的同学，而不是因为自己的疏忽给班级带来不好的影响。我向全班同学表示歉意，并承诺将积极改进自己的行为，为营造良好的学习氛围贡献自己的力量。
-                        <br \>
-                        &emsp;&emsp;最后，我深知老师的辛勤付出，为了我们的成长和进步，您付出了无数的心血。我一定会珍惜您给予的每一次学习机会，用实际行动来证明自己的改变和进步。而且，我想对老师表达深刻的歉意，不仅对于今天的问题，也对我之前对地理的轻视。我决心从现在开始，端正自己的学习态度，提前预习地理知识，认真完成地理作业，积极参与地理课堂讨论，提高自己的地理成绩。我在此保证：从今以后会重视学校里的每一项科目，坚决不再犯类似的问题。
-                        <br \>
-                        &emsp;&emsp;此致，
-                        <br \>
-                        敬礼！
-                        <br \>
-                        2025年5月28日
+                        <?php echo htmlspecialchars($lang['post001-text'] ?? ''); ?>
                     </p>
 
                 </div> <!-- post-section -->
@@ -401,7 +476,7 @@ if (!empty($config['site_start_date'])) {
 
         <div class="row s-resume__section">
             <div class="column large-3 tab-12">
-                <h3 class="section-header-allcaps">partner</h3>
+                <h3 class="section-header-allcaps">partnership</h3>
             </div>
             <div class="column large-9 tab-12">
                 <div class="resume-block">
@@ -409,7 +484,7 @@ if (!empty($config['site_start_date'])) {
                     <div class="resume-block__header">
                         <h4 class="h3">Voident_Game</h4>
                         <p class="resume-block__header-meta">
-                            <span>Voident_Game游戏工作室</span>
+                            <span><?php echo htmlspecialchars($lang['voident-game'] ?? ''); ?></span>
                             <span class="resume-block__header-date">
                                 Established in Jun, 2022
                             </span>
@@ -417,7 +492,7 @@ if (!empty($config['site_start_date'])) {
                     </div>
 
                     <p>
-                        *这里放该工作室的简介*
+                        <?php echo htmlspecialchars($lang['voident-game-description'] ?? ''); ?>
                     </p>
 
                 </div> <!-- end resume-block -->
@@ -425,9 +500,9 @@ if (!empty($config['site_start_date'])) {
                 <div class="resume-block">
 
                     <div class="resume-block__header">
-                        <h4 class="h4">关于Voident_Game</h4>
+                        <h4 class="h4"><?php echo htmlspecialchars($lang['voident-game-about'] ?? ''); ?></h4>
                         <p class="resume-block__header-meta">
-                            <span>Voident_Game游戏工作室</span>
+                            <span><?php echo htmlspecialchars($lang['voident-game'] ?? ''); ?></span>
                             <span class="resume-block__header-date">
                                 Established in Jun, 2022
                             </span>
@@ -435,7 +510,9 @@ if (!empty($config['site_start_date'])) {
                     </div>
 
                     <p>
-                        *这里放该工作室的我的世界服务器*
+                        <?php echo htmlspecialchars($lang['voident-game-product1'] ?? ''); ?>
+                        <br \>
+                        <?php echo htmlspecialchars($lang['voident-game-product2'] ?? ''); ?>
                     </p>
 
                 </div> <!-- end resume-block -->
@@ -451,13 +528,13 @@ if (!empty($config['site_start_date'])) {
                 <div class="resume-block">
 
                     <p>
-                        所有翻译均为机翻，翻译可能有误，请以简体中文位原文对照。
+                        <?php echo htmlspecialchars($lang['translation-description'] ?? ''); ?>
                     </p>
 
                     <ul class="skill-bars-fat">
                         <li>
                             <div class="progress percent100"></div>
-                            <strong style="color: rgb(55, 177, 55);">
+                            <strong>
                                 简体中文/people's republic of china
                             </strong>
                         </li>
@@ -507,7 +584,7 @@ if (!empty($config['site_start_date'])) {
 
         <div class="row s-portfolio__header">
             <div class="column large-12">
-                <h3>精选图片</h3>
+                <h3><?php echo htmlspecialchars($lang['photo-title'] ?? ''); ?></h3>
             </div>
         </div>
 
@@ -553,12 +630,12 @@ if (!empty($config['site_start_date'])) {
                 <img src="https://cdn.z.wiki/autoupload/20250529/zftP/964X964/laifu.jpg" alt="来福" />
 
                 <div class="modal-popup__desc">
-                    <h5>来福</h5>
-                    <p>此为本网站作者于2021年~2022年中喂养的小狗，属银狐，后因扰民被迫送人，对此非常不舍。故此，在此纪念来福。</p>
+                    <h5><?php echo htmlspecialchars($lang['laifu'] ?? ''); ?></h5>
+                    <p><?php echo htmlspecialchars($lang['laifu-description'] ?? ''); ?></p>
                     <ul class="modal-popup__cat">
-                        <li>2022年6月7日</li>
-                        <li>动物</li>
-                        <li>中国 河南省 郑州市 巩义市</li>
+                        <li><?php echo htmlspecialchars($lang['laifu-time'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['laifu-type'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['laifu-localtion'] ?? ''); ?></li>
                     </ul>
                 </div>
 
@@ -571,12 +648,12 @@ if (!empty($config['site_start_date'])) {
                     alt="" />
 
                 <div class="modal-popup__desc">
-                    <h5>仙米国家森林公园</h5>
-                    <p>一座美丽的雪山位于仙米国家森林公园，祁连山脉。我在2023年有幸去过两次，讲真的，它很令我震惊，在海拔3400米的中国一二阶梯分界线处，它就这样矗立在此，象征着青藏高原的雄伟壮阔。</p>
+                    <h5><?php echo htmlspecialchars($lang['xianmi-national'] ?? ''); ?></h5>
+                    <p><?php echo htmlspecialchars($lang['xianmi-description'] ?? ''); ?></p>
                     <ul class="modal-popup__cat">
-                        <li>2023年10月29日</li>
-                        <li>自然风景</li>
-                        <li>中国 甘肃省 仙米国家森林公园</li>
+                        <li><?php echo htmlspecialchars($lang['xianmi-time'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['xianmi-type'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['xianmi-location'] ?? ''); ?></li>
                     </ul>
                 </div>
 
@@ -589,13 +666,12 @@ if (!empty($config['site_start_date'])) {
                     alt="" />
 
                 <div class="modal-popup__desc">
-                    <h5>塔克拉玛干沙漠</h5>
-                    <p>身处亚洲深处的褶皱中，矗立的石碑前，极目远眺，塔克拉玛干沙漠以最原始的形态扑面而来。浩荡的沙海与苍穹在远处相接，孤烟与落日交相辉映。沙丘如凝固的惊涛，每一道波纹都镌刻着万年风雨，枯黄的胡阳叙说着楼兰古国的兴衰。
-                        ————陨落之星（网站贡献者提供文案）</p>
+                    <h5><?php echo htmlspecialchars($lang['taklamakan-desert'] ?? ''); ?></h5>
+                    <p><?php echo htmlspecialchars($lang['taklamakan-description'] ?? ''); ?></p>
                     <ul class="modal-popup__cat">
-                        <li>2023年9月30日</li>
-                        <li>自然风景</li>
-                        <li>中国 新疆维吾尔自治区 阿克苏市 阿拉尔市</li>
+                        <li><?php echo htmlspecialchars($lang['taklamakan-time'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['taklamakan-type'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['taklamakan-location'] ?? ''); ?></li>
                     </ul>
                 </div>
 
@@ -607,12 +683,12 @@ if (!empty($config['site_start_date'])) {
                 <img src="https://2.z.wiki/autoupload/20250529/WGGJ/828X828/thunder.jpg" alt="" />
 
                 <div class="modal-popup__desc">
-                    <h5>闪电</h5>
-                    <p>偶然间（并非偶然）拍到的闪电，但总有人说我是P的照片？？</p>
+                    <h5><?php echo htmlspecialchars($lang['thunder'] ?? ''); ?></h5>
+                    <p><?php echo htmlspecialchars($lang['thunder-description'] ?? ''); ?></p>
                     <ul class="modal-popup__cat">
-                        <li>2024年8月20日</li>
-                        <li>自然风景</li>
-                        <li>中国 河南省 郑州市 巩义市</li>
+                        <li><?php echo htmlspecialchars($lang['thunder-time'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['thunder-type'] ?? ''); ?></li>
+                        <li><?php echo htmlspecialchars($lang['thunder-location'] ?? ''); ?></li>
                     </ul>
                 </div>
 
@@ -633,7 +709,7 @@ if (!empty($config['site_start_date'])) {
 
         <div class="row s-testimonials__header">
             <div class="column large-12">
-                <h3>网站贡献者</h3>
+                <h3><?php echo htmlspecialchars($lang['contributors'] ?? ''); ?></h3>
             </div>
         </div>
 
@@ -651,11 +727,11 @@ if (!empty($config['site_start_date'])) {
                                     class="testimonial-slider__avatar">
                                 <cite class="testimonial-slider__cite">
                                     <strong>Entertainment_YH</strong>
-                                    <span>作者</span>
+                                    <span><?php echo htmlspecialchars($lang['yh-position'] ?? ''); ?></span>
                                 </cite>
                             </div>
                             <p>
-                                本网站的作者，没什么可写的，你说是吧？
+                                <?php echo htmlspecialchars($lang['yh-description'] ?? ''); ?>
                             </p>
                         </div> <!-- end testimonial-slider__slide -->
 
@@ -665,11 +741,11 @@ if (!empty($config['site_start_date'])) {
                                     class="testimonial-slider__avatar">
                                 <cite class="testimonial-slider__cite">
                                     <strong>QN</strong>
-                                    <span>Voident_Game游戏工作室创始人</span>
+                                    <span><?php echo htmlspecialchars($lang['qn-position'] ?? ''); ?></span>
                                 </cite>
                             </div>
                             <p>
-                                打瓦的，本网站服务器提供者，感谢您对本网站的贡献！
+                                <?php echo htmlspecialchars($lang['qn-description'] ?? ''); ?>
                             </p>
                         </div> <!-- end testimonial-slider__slide -->
 
@@ -678,12 +754,12 @@ if (!empty($config['site_start_date'])) {
                                 <img src="https://2.z.wiki/autoupload/20250529/cxZ5/1024X1024/fallen-star.jpeg"
                                     alt="Author image" class="testimonial-slider__avatar">
                                 <cite class="testimonial-slider__cite">
-                                    <strong>陨落之星</strong>
-                                    <span>作者的某个朋友</span>
+                                    <strong><?php echo htmlspecialchars($lang['fallen-star-name'] ?? ''); ?></strong>
+                                    <span><?php echo htmlspecialchars($lang['fallen-star-position'] ?? ''); ?></span>
                                 </cite>
                             </div>
                             <p>
-                                精选图片中的文案编辑者，感谢您对本网站的贡献！
+                                <?php echo htmlspecialchars($lang['fallen-star-description'] ?? ''); ?>
                             </p>
                         </div> <!-- end testimonial-slider__slide -->
 
@@ -692,12 +768,12 @@ if (!empty($config['site_start_date'])) {
                                 <img src="https://cdn.z.wiki/autoupload/20250529/3zZ6/474X483/you.png"
                                     alt="Author image" class="testimonial-slider__avatar">
                                 <cite class="testimonial-slider__cite">
-                                    <strong>所有本网站的访客</strong>
-                                    <span>献给世界上唯一的您</span>
+                                    <strong><?php echo htmlspecialchars($lang['you-name'] ?? ''); ?></strong>
+                                    <span><?php echo htmlspecialchars($lang['you-position'] ?? ''); ?></span>
                                 </cite>
                             </div>
                             <p>
-                                感谢您访问此网站！
+                                <?php echo htmlspecialchars($lang['you-description'] ?? ''); ?>
                             </p>
                         </div> <!-- end testimonial-slider__slide -->
 
@@ -710,6 +786,7 @@ if (!empty($config['site_start_date'])) {
             </div> <!-- end column -->
 
         </div> <!-- end row -->
+    </div> <!-- Add this closing div for the row -->
 
     </section> <!-- end s-testimonials -->
 
@@ -734,15 +811,32 @@ if (!empty($config['site_start_date'])) {
             </div>
 
             <div class="column large-7 medium-6 w-1000-stack ss-copyright">
-                <span>本网站最终解释权归Entertainment_YH所有</span>
-                <span><a target="_blank" href="" title="备案号">此处留备案号</a></span></span>
+                <span><?php echo htmlspecialchars($lang['copyright'] ?? ''); ?></span>
+                <span><a target="_blank" href=""
+                        title="备案号"><?php echo htmlspecialchars($lang['ICP'] ?? ''); ?></a></span>
             </div>
 
             <div class="column large-12 medium-8 w-1000-stack ss-statistics">
-                <span>今天的网站一共有 <?php echo $today_count; ?> 人来过</span>
-                <span>总共有 <?php echo $total_count; ?> 人来过</span>
-                <span>现在有 <?php echo $online_count; ?> 人在看我的网站</span>
-                <span>这个网站已经陪你走过了 <?php echo $site_days; ?> 个日日夜夜</span>
+                <span>
+                    <?php echo htmlspecialchars($lang['today-statistics'] ?? ''); ?> <span
+                        id="today_count"><?php echo $today_count; ?></span>
+                    <?php echo htmlspecialchars($lang['today-statistics-people'] ?? ''); ?>
+                </span>
+                <span>
+                    <?php echo htmlspecialchars($lang['total-statistics'] ?? ''); ?> <span
+                        id="total_count"><?php echo $total_count; ?></span>
+                    <?php echo htmlspecialchars($lang['total-statistics-people'] ?? ''); ?>
+                </span>
+                <span>
+                    <?php echo htmlspecialchars($lang['online-statistics'] ?? ''); ?> <span
+                        id="online_count"><?php echo $online_count; ?></span>
+                    <?php echo htmlspecialchars($lang['online-statistics-people'] ?? ''); ?>
+                </span>
+                <span>
+                    <?php echo htmlspecialchars($lang['site-days'] ?? ''); ?> <span
+                        id="site_days"><?php echo $site_days; ?></span>
+                    <?php echo htmlspecialchars($lang['days'] ?? ''); ?>
+                </span>
             </div>
 
 
