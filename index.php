@@ -126,7 +126,7 @@ $ip = getUserIP();
 // 判断是否为本地地址
 if ($ip === '127.0.0.1' || $ip === '::1') {
     // 本地开发环境，设置默认语言
-    $lang_code = 'en';  // 或者你想默认的语言
+    $lang_code = 'zh-cn';  // 或者你想默认的语言
     echo "本地 IP，使用默认语言：$lang_code";
 } else {
     // 发起请求
@@ -155,18 +155,16 @@ if ($ip === '127.0.0.1' || $ip === '::1') {
 
             echo "检测到语言：$lang_code";
         } else {
-            echo "API 返回无效，语言设置为默认：en";
-            $lang_code = 'en';
+            echo "API 返回无效，语言设置为默认：简体中文";
+            $lang_code = 'zh-cn';
         }
     } else {
-        echo "API 请求失败，语言设置为默认：en";
-        $lang_code = 'en';
+        echo "API 请求失败，语言设置为默认：简体中文";
+        $lang_code = 'zh-cn';
     }
 }
 
-
-
-
+// // 旧的语言检测逻辑（已弃用）
 
 // // 1. 优先用cookie中的country_code
 // if (isset($_COOKIE['country_code'])) {
