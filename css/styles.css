@@ -1908,11 +1908,16 @@ small {
 }
 
 blockquote {
-    margin: 0 0 var(--vspace-1) 0;
+    /*margin: 0 0 var(--vspace-1) 0;
     padding: var(--vspace-1) var(--vspace-1_5);
     border-left: 4px solid black;
-    position: relative;
+    position: relative;*/
+    margin: 20px 0;
+    padding: 10px 20px;
+    background-color: #a1a1a1;
+    border-left: 5px solid #888;
 }
+
 
 @media screen and (max-width: 400px) {
     blockquote {
@@ -5000,5 +5005,10 @@ button.btn--pill {
         margin-right: 1.4rem;
     }
 }
+
+/* ===================================================================
+ * # 后续添加内容
+ *
+ * ------------------------------------------------------------------- */
 
 /*Entertainment_YH*/

@@ -108,8 +108,6 @@ if (!empty($config['site_start_date'])) {
 // 语言代码自动检测
 $lang_code = 'zh-cn'; // 默认
 
-
-
 function getUserIP()
 {
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
@@ -121,48 +119,37 @@ function getUserIP()
     }
 }
 
-$ip = getUserIP();
+function detectLangByIP($ip)
+{
+    // 本地开发环境
+    if ($ip === '127.0.0.1' || $ip === '::1') {
+        return 'zh-cn';
+    }
 
-// 判断是否为本地地址
-if ($ip === '127.0.0.1' || $ip === '::1') {
-    // 本地开发环境，设置默认语言
-    $lang_code = 'zh-cn';  // 或者你想默认的语言
-    echo "本地 IP，使用默认语言：$lang_code";
-} else {
-    // 发起请求
     $url = "https://v.api.aa1.cn/api/chinaip/?ip=" . urlencode($ip);
-    $response = @file_get_contents($url);  // 加上 @ 抑制警告
+    $response = @file_get_contents($url);
 
     if ($response !== false) {
-        // 提取 body 中的 JSON
-        preg_match('/<body[^>]*>(.*?)<\/body>/is', $response, $matches);
-        $json = isset($matches[1]) ? trim($matches[1]) : null;
-
-        $data = json_decode($json, true);
-
-        if ($data !== null && isset($data['data']['Cc_Code'])) {
-            $cc = strtoupper($data['data']['Cc_Code']);
-
-            if ($cc === 'CN') {
-                $lang_code = 'zh-cn';
-            } elseif ($cc === 'US') {
-                $lang_code = 'en';
-            } elseif (in_array($cc, ['TW', 'HK', 'MO'])) {
-                $lang_code = 'zh-tw';
-            } else {
-                $lang_code = 'en';
+        if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $response, $matches)) {
+            $json = trim($matches[1]);
+            $data = json_decode($json, true);
+            if (isset($data['data']['Cc_Code'])) {
+                $cc = strtoupper($data['data']['Cc_Code']);
+                if ($cc === 'CN')
+                    return 'zh-cn';
+                if ($cc === 'US')
+                    return 'en';
+                if (in_array($cc, ['TW', 'HK', 'MO']))
+                    return 'zh-tw';
+                return 'en';
             }
-
-            echo "检测到语言：$lang_code";
-        } else {
-            echo "API 返回无效，语言设置为默认：简体中文";
-            $lang_code = 'zh-cn';
         }
-    } else {
-        echo "API 请求失败，语言设置为默认：简体中文";
-        $lang_code = 'zh-cn';
     }
+    return 'zh-cn';
 }
+
+$ip = getUserIP();
+$lang_code = detectLangByIP($ip);
 
 // // 旧的语言检测逻辑（已弃用）
 
@@ -254,22 +241,26 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                             echo ' class="current"'; ?>>
                             <a href="?lang=en">English</a>
                             </li>
+                            <li<?php if ($lang_code === 'zh-tw')
+                                echo ' class="current"'; ?>>
+                                <a href="?lang=zh-tw">繁體中文</a>
+                                </li>
                 </ul>
-                <?php
-                // 语言切换处理
-                if (isset($_GET['lang'])) {
-                    $lang = strtolower($_GET['lang']);
-                    if (in_array($lang, ['zh-cn', 'en', 'zh-tw'])) {
-                        setcookie('country_code', $lang === 'en' ? 'us' : ($lang === 'zh-tw' ? 'tw' : 'cn'), time() + 3600 * 24 * 30, '/');
-                        // 跳转去除 ?lang 参数
-                        $url = strtok($_SERVER["REQUEST_URI"], '?');
-                        header("Location: $url");
-                        exit;
-                    }
-                }
-                ?>
             </nav>
         </div> <!-- end row -->
+        <?php
+        // 强制切换语言，不受其他因素影响
+        if (isset($_GET['lang'])) {
+            $lang = strtolower($_GET['lang']);
+            if (in_array($lang, ['zh-cn', 'en', 'zh-tw'])) {
+                setcookie('country_code', $lang === 'en' ? 'us' : ($lang === 'zh-tw' ? 'tw' : 'cn'), time() + 3600 * 24 * 30, '/');
+                $url = strtok($_SERVER["REQUEST_URI"], '?');
+                // 立即刷新页面，确保切换生效
+                header("Location: " . htmlspecialchars($url, ENT_QUOTES));
+                exit;
+            }
+        }
+        ?>
 
         <a class="s-header__menu-toggle" href="#0" title="Menu">
             <span class="s-header__menu-icon"></span>
@@ -471,6 +462,87 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
             </div>
         </div> <!-- s-resume__section -->
 
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">Utilities</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block">
+                    <!-- utilities 001 -->
+                    <div class="resume-block__header">
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['utilities001-title'] ?? ''); ?></h4>
+                        <p class="resume-block__header-meta">
+                            <span><?php echo htmlspecialchars($lang['ID'] ?? ''); ?></span>
+                            <span class="resume-block__header-date">
+                                June 18<sup>th</sup>, 2025 - Present
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['utilities001-description'] ?? ''); ?><br \>
+                    <blockquote>
+                        <ul>
+                            <li>
+                                <a href="https://store.steampowered.com/">
+                                    <?php echo htmlspecialchars($lang['utilities001-steam'] ?? ''); ?>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="https://www.runoob.com/">
+                                    <?php echo htmlspecialchars($lang['utilities001-runoob'] ?? ''); ?>
+                                </a>
+                            </li>
+                        </ul>
+                    </blockquote>
+                    </p>
+
+
+                </div> <!-- end resume-block -->
+            </div>
+
+        </div>
+
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">article</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block">
+                    <!-- utilities 001 -->
+                    <div class="resume-block__header">
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['article001-title'] ?? ''); ?></h4>
+                        <p class="resume-block__header-meta">
+                            <span><?php echo htmlspecialchars($lang['ID'] ?? ''); ?></span>
+                            <span><?php echo htmlspecialchars($lang['article001-description'] ?? ''); ?></span>
+                            <span class="resume-block__header-date">
+                                June 18<sup>th</sup>, 2025 - Present
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-3'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-4'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-5'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-6'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-7'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-8'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-9'] ?? ''); ?>
+                    <?php echo htmlspecialchars($lang['article001-paragraph-10'] ?? ''); ?>
+                    </p>
+
+
+                </div> <!-- end resume-block -->
+            </div>
+
+        </div>
 
         <div class="row s-resume__section">
             <div class="column large-3 tab-12">
@@ -784,7 +856,7 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
             </div> <!-- end column -->
 
         </div> <!-- end row -->
-    </div> <!-- Add this closing div for the row -->
+        </div> <!-- Add this closing div for the row -->
 
     </section> <!-- end s-testimonials -->
 
