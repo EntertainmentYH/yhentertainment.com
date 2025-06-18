@@ -484,12 +484,15 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                     <blockquote>
                         <ul>
                             <li>
-                                <a href="https://store.steampowered.com/">
+                                <a href="https://store.steampowered.com/" title="Steam主页"><i
+                                        class="fab fa-steam" aria-hidden="true"></i></a>
+                                <a href="https://store.steampowered.com/"
+                                    style="text-shadow: 0 0 3px #000; color: snow;">
                                     <?php echo htmlspecialchars($lang['utilities001-steam'] ?? ''); ?>
                                 </a>
                             </li>
                             <li>
-                                <a href="https://www.runoob.com/">
+                                <a href="https://www.runoob.com/" style="text-shadow: 0 0 3px #000; color: snow;">
                                     <?php echo htmlspecialchars($lang['utilities001-runoob'] ?? ''); ?>
                                 </a>
                             </li>
