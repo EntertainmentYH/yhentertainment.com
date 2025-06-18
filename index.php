@@ -484,7 +484,7 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                     <blockquote>
                         <ul>
                             <li>
-                                <a href="https://store.steampowered.com/" title="Steam主页"><i
+                                <a href="https://store.steampowered.com/" title="Steam主页" style="text-shadow: 0 0 3px #000; color: snow;"><i
                                         class="fab fa-steam" aria-hidden="true"></i></a>
                                 <a href="https://store.steampowered.com/"
                                     style="text-shadow: 0 0 3px #000; color: snow;">
