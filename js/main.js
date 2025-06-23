@@ -324,7 +324,8 @@ fetch('https://www.ipplus360.com/getIP')
         if (data && data.country_code) {
             document.cookie = "country_code=" + data.country_code + ";path=/";
         }
-    });
+    })
+    .catch(() => {});
 
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('vote-form');
