@@ -219,10 +219,6 @@ if ($option && isset($data[$option])) {
 //     }
 // }
 
-
-
-
-
 // 读取对应语言文件
 $lang_file = __DIR__ . "/languages/{$lang_code}.json";
 if (!file_exists($lang_file)) {
