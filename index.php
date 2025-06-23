@@ -151,6 +151,49 @@ function detectLangByIP($ip)
 $ip = getUserIP();
 $lang_code = detectLangByIP($ip);
 
+// filepath: f:\Personal website\yhentertainment.com\vote.php
+header('Content-Type: application/json');
+
+$vote_file = __DIR__ . '/statistics/vote.json';
+$ip_file = __DIR__ . '/statistics/vote_ip.json';
+
+// 获取投票选项
+$option = $_POST['option'] ?? '';
+$ip = $_SERVER['REMOTE_ADDR'];
+
+// 读取已投票IP
+$ip_list = [];
+if (file_exists($ip_file)) {
+    $ip_list = json_decode(file_get_contents($ip_file), true);
+    if (!is_array($ip_list))
+        $ip_list = [];
+}
+
+// 检查是否已投票
+if (in_array($ip, $ip_list)) {
+    echo json_encode(['status' => 'error', 'msg' => '您已投票！']);
+    exit;
+}
+
+// 读取投票数据
+$data = [];
+if (file_exists($vote_file)) {
+    $data = json_decode(file_get_contents($vote_file), true);
+    if (!is_array($data))
+        $data = [];
+}
+
+// 处理投票
+if ($option && isset($data[$option])) {
+    $data[$option]++;
+    file_put_contents($vote_file, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    $ip_list[] = $ip;
+    file_put_contents($ip_file, json_encode($ip_list, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    echo json_encode(['status' => 'ok', 'msg' => '投票成功！', 'data' => $data]);
+} else {
+    echo json_encode(['status' => 'error', 'msg' => '参数错误']);
+}
+
 // // 旧的语言检测逻辑（已弃用）
 
 // // 1. 优先用cookie中的country_code
@@ -373,6 +416,51 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
 
         <div class="row s-resume__section">
             <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">vote</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block"
+                    style="padding: 2em 2em 1em 2em; background: #e3f6fd; border-radius: 12px; box-shadow: 0 2px 8px rgba(155, 228, 241, 0.8);">
+                    <div class="resume-block__header" style="margin-bottom: 1em;">
+                        <h4 class="h3" style="margin-bottom: 0.5em;">
+                            <?php echo htmlspecialchars($lang['vote-title'] ?? ''); ?>
+                        </h4>
+                    </div>
+                    <div id="vote-area">
+                        <form id="vote-form" style="display: flex; flex-direction: column; gap: 1em;">
+                            <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
+                                <input type="radio" name="option" value="option1" style="accent-color: #00bfae;">
+                                <span
+                                    style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option1'] ?? ''); ?></span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
+                                <input type="radio" name="option" value="option2" style="accent-color: #00bfae;">
+                                <span
+                                    style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option2'] ?? ''); ?></span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
+                                <input type="radio" name="option" value="option3" style="accent-color: #00bfae;">
+                                <span
+                                    style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option3'] ?? ''); ?></span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
+                                <input type="radio" name="option" value="option3" style="accent-color: #00bfae;">
+                                <span
+                                    style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option4'] ?? ''); ?></span>
+                            </label>
+                            <button type="submit"
+                                style="margin-top: 1em; padding: 0.75em 0; background: #00bfae; color: #fff; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; transition: background 0.2s; width: 100%;">
+                                <?php echo htmlspecialchars($lang['vote-submit'] ?? ''); ?>
+                            </button>
+                        </form>
+                        <div id="vote-result" style="margin-top: 1.5em;"></div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- post-section -->
+
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
                 <h3 class="section-header-allcaps">announcement</h3>
             </div>
             <div class="column large-9 tab-12">
@@ -421,6 +509,7 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
             </div>
 
         </div> <!-- post-section -->
+
 
         <div class="row s-resume__section">
             <div class="column large-3 tab-12">
@@ -484,8 +573,9 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                     <blockquote>
                         <ul>
                             <li>
-                                <a href="https://store.steampowered.com/" title="Steam主页" style="text-shadow: 0 0 3px #000; color: snow;"><i
-                                        class="fab fa-steam" aria-hidden="true"></i></a>
+                                <a href="https://store.steampowered.com/" title="Steam主页"
+                                    style="text-shadow: 0 0 3px #000; color: snow;"><i class="fab fa-steam"
+                                        aria-hidden="true"></i></a>
                                 <a href="https://store.steampowered.com/"
                                     style="text-shadow: 0 0 3px #000; color: snow;">
                                     <?php echo htmlspecialchars($lang['utilities001-steam'] ?? ''); ?>

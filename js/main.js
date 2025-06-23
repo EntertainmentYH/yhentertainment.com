@@ -325,3 +325,76 @@ fetch('https://www.ipplus360.com/getIP')
             document.cookie = "country_code=" + data.country_code + ";path=/";
         }
     });
+
+// 投票系统 
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('vote-form');
+    const result = document.getElementById('vote-result');
+    if (form) {
+        form.onsubmit = function (e) {
+            e.preventDefault();
+            const data = new FormData(form);
+            fetch('vote.php', {
+                method: 'POST',
+                body: data
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 'ok') {
+                    result.innerHTML = '投票成功！<br>' + showVoteResult(res.data);
+                } else {
+                    result.innerHTML = res.msg;
+                }
+            });
+        };
+    }
+        // 显示结果函数（进度条样式）
+    function showVoteResult(data) {
+        let total = 0;
+        for (let k in data) total += data[k];
+        let html = '<div style="width:100%;max-width:500px">';
+        for (let k in data) {
+            let percent = total ? Math.round(data[k] / total * 100) : 0;
+            html += `
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>${k}</span>
+                        <span style="font-size:0.95em;color:#555;">${data[k]}票 (${percent}%)</span>
+                    </div>
+                    <div style="background:#eee;border-radius:6px;overflow:hidden;height:20px;">
+                        <div style="background:#00bfae;height:100%;width:${percent}%;transition:width 0.5s;"></div>
+                    </div>
+                </div>
+            `;
+        }
+        html += '</div>';
+        return html;
+    }
+    function alarm(msg) {
+    alert(msg);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('vote-form');
+    const result = document.getElementById('vote-result');
+    if (form) {
+        form.onsubmit = function (e) {
+            e.preventDefault();
+            const data = new FormData(form);
+            fetch('vote.php', {
+                method: 'POST',
+                body: data
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 'ok') {
+                    alarm('感谢您的投票！');
+                    result.innerHTML = '投票成功！<br>' + showVoteResult(res.data);
+                } else {
+                    result.innerHTML = res.msg;
+                }
+            });
+        };
+    }
+});
+});
