@@ -326,29 +326,12 @@ fetch('https://www.ipplus360.com/getIP')
         }
     });
 
-// 投票系统 
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('vote-form');
     const result = document.getElementById('vote-result');
-    if (form) {
-        form.onsubmit = function (e) {
-            e.preventDefault();
-            const data = new FormData(form);
-            fetch('vote.php', {
-                method: 'POST',
-                body: data
-            })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.status === 'ok') {
-                        result.innerHTML = '投票成功！';
-                    } else {
-                        result.innerHTML = res.msg;
-                    }
-                });
-        };
-    }
-    // 显示结果函数（进度条样式）
+    const votedText = '已投票，10分钟内不可再次投票。';
+    let timer = null;
+
     function showVoteResult(data) {
         let total = 0;
         for (let k in data) total += data[k];
@@ -370,11 +353,11 @@ document.addEventListener('DOMContentLoaded', function () {
         html += '</div>';
         return html;
     }
+
     function alarm(msg) {
         alert(msg);
     }
 
-    // 记录投票时间到localStorage
     function setVoteCooldown() {
         localStorage.setItem('voted_time', Date.now());
     }
@@ -396,54 +379,61 @@ document.addEventListener('DOMContentLoaded', function () {
         return `${min}分${sec}秒`;
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('vote-form');
-        const result = document.getElementById('vote-result');
-        const votedText = '已投票，10分钟内不可再次投票。';
-        let timer = null;
-
-        function updateCooldownUI() {
-            const left = getCooldownLeft();
-            if (left > 0) {
-                form.style.display = 'none';
-                result.innerHTML = `${votedText}<br>请等待 ${formatTime(left)} 后可再次投票。`;
-                timer = setTimeout(updateCooldownUI, 1000);
-            } else {
-                form.style.display = '';
-                result.innerHTML = '';
-                if (timer) clearTimeout(timer);
-            }
+    function updateCooldownUI() {
+        if (!form || !result) return;
+        const left = getCooldownLeft();
+        if (left > 0) {
+            form.style.display = 'none';
+            result.innerHTML = `${votedText}<br>请等待 ${formatTime(left)} 后可再次投票。`;
+            timer = setTimeout(updateCooldownUI, 1000);
+        } else {
+            form.style.display = '';
+            result.innerHTML = '';
+            if (timer) clearTimeout(timer);
         }
+    }
 
-        if (form) {
-            // 页面加载时检查冷却
+    if (form && result) {
+        if (getCooldownLeft() > 0) {
+            updateCooldownUI();
+        }
+        form.onsubmit = function (e) {
+            e.preventDefault();
             if (getCooldownLeft() > 0) {
                 updateCooldownUI();
+                return;
             }
-            form.onsubmit = function (e) {
-                e.preventDefault();
-                if (getCooldownLeft() > 0) {
-                    updateCooldownUI();
-                    return;
-                }
-                const data = new FormData(form);
-                fetch('vote.php', {
-                    method: 'POST',
-                    body: data
-                })
-                    .then(res => res.json())
-                    .then(res => {
-                        if (res.status === 'ok') {
-                            setVoteCooldown();
-                            alarm('感谢您的投票！');
-                            form.style.display = 'none';
-                            result.innerHTML = '投票成功！<br>' + showVoteResult(res.data) + `<br>${votedText}`;
-                            updateCooldownUI();
-                        } else {
-                            result.innerHTML = res.msg;
-                        }
-                    });
-            };
-        }
-    });
+            const data = new FormData(form);
+            fetch('vote.php', {
+                method: 'POST',
+                body: data
+            })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 'ok') {
+                        setVoteCooldown();
+                        alarm('感谢您的投票！');
+                        form.style.display = 'none';
+                        result.innerHTML = '投票成功！<br>' + showVoteResult(res.data) + `<br>${votedText}`;
+                        updateCooldownUI();
+                    } else {
+                        result.innerHTML = res.msg;
+                    }
+                });
+        };
+    }
+});
+// 在页面刷新前记录滚动位置
+window.addEventListener('beforeunload', function () {
+    localStorage.setItem('scrollTop', window.scrollY || window.pageYOffset);
+});
+
+// 页面加载后恢复滚动位置
+window.addEventListener('load', function () {
+    const scrollTop = localStorage.getItem('scrollTop');
+    if (scrollTop) {
+        window.scrollTo(0, parseInt(scrollTop, 10));
+        // 恢复后清除，避免影响下次
+        localStorage.removeItem('scrollTop');
+    }
 });

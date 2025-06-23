@@ -1,8 +1,8 @@
 <?php
 header('Content-Type: application/json');
 
-$vote_file = __DIR__ . '/statistics/vote.json';
-$ip_file = __DIR__ . '/statistics/vote_ip.json';
+$vote_file = __DIR__ . '/../statistics/vote.json';
+$ip_file = __DIR__ . '/../statistics/vote_ip.json';
 
 $option = $_POST['option'] ?? '';
 $ip = $_SERVER['REMOTE_ADDR'];
