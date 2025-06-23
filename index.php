@@ -217,10 +217,10 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
 
     <!-- favicons
     ================================================== -->
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
-    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="/favicon_io/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/favicon_io/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" href="/favicon_io/favicon.ico" type="image/x-icon">
 
 </head>
 
@@ -385,22 +385,26 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                     <div id="vote-area">
                         <form id="vote-form" style="display: flex; flex-direction: column; gap: 1em;">
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" class="vote-btn" name="option" value="option1" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option1"
+                                    style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option1'] ?? ''); ?></span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" class="vote-btn" name="option" value="option2" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option2"
+                                    style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option2'] ?? ''); ?></span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" class="vote-btn" name="option" value="option3" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option3"
+                                    style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option3'] ?? ''); ?></span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" class="vote-btn" name="option" value="option4" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option4"
+                                    style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option4'] ?? ''); ?></span>
                             </label>
