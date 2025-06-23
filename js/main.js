@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             const data = new FormData(form);
-            fetch('vote.php', {
+            fetch('vote/vote.php', {
                 method: 'POST',
                 body: data
             })
