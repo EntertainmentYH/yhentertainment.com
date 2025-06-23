@@ -383,7 +383,7 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                         </h4>
                     </div>
                     <div id="vote-area">
-                        <form id="vote-form" style="display: flex; flex-direction: column; gap: 1em;">
+                        <form id="vote-form" action="vote/vote.php" method="post" style="display: flex; flex-direction: column; gap: 1em;">
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
                                 <input type="radio" class="vote-btn" name="option" value="option1"
                                     style="accent-color: #00bfae;">
@@ -408,7 +408,7 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option4'] ?? ''); ?></span>
                             </label>
-                            <button type="submit"
+                            <button type="submit" class="vote-btn"
                                 style="margin-top: 1em; padding: 0.75em 0; background: #00bfae; color: #fff; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; transition: background 0.2s; width: 100%;">
                                 <?php echo htmlspecialchars($lang['vote-submit'] ?? ''); ?>
                             </button>
