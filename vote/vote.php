@@ -41,4 +41,14 @@ if ($option && isset($data[$option])) {
 } else {
     echo json_encode(['status' => 'error', 'msg' => '参数错误']);
 }
+
+$limit_seconds = 600; // 10分钟
+$now = time();
+if (isset($ip_list[$ip]) && ($now - $ip_list[$ip]) < $limit_seconds) {
+    echo json_encode(['status' => 'error', 'msg' => '您已投票，请10分钟后再试！']);
+    exit;
+}
+// 记录本次投票时间
+$ip_list[$ip] = $now;
+file_put_contents($ip_file, json_encode($ip_list, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 ?>

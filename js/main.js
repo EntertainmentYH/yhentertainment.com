@@ -374,12 +374,58 @@ document.addEventListener('DOMContentLoaded', function () {
         alert(msg);
     }
 
+    // 记录投票时间到localStorage
+    function setVoteCooldown() {
+        localStorage.setItem('voted_time', Date.now());
+    }
+    function getVoteCooldown() {
+        return parseInt(localStorage.getItem('voted_time') || '0', 10);
+    }
+    function getCooldownLeft() {
+        const last = getVoteCooldown();
+        if (!last) return 0;
+        const now = Date.now();
+        const diff = now - last;
+        const left = 10 * 60 * 1000 - diff; // 10分钟
+        return left > 0 ? left : 0;
+    }
+    function formatTime(ms) {
+        const s = Math.ceil(ms / 1000);
+        const min = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${min}分${sec}秒`;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('vote-form');
         const result = document.getElementById('vote-result');
+        const votedText = '已投票，10分钟内不可再次投票。';
+        let timer = null;
+
+        function updateCooldownUI() {
+            const left = getCooldownLeft();
+            if (left > 0) {
+                form.style.display = 'none';
+                result.innerHTML = `${votedText}<br>请等待 ${formatTime(left)} 后可再次投票。`;
+                timer = setTimeout(updateCooldownUI, 1000);
+            } else {
+                form.style.display = '';
+                result.innerHTML = '';
+                if (timer) clearTimeout(timer);
+            }
+        }
+
         if (form) {
+            // 页面加载时检查冷却
+            if (getCooldownLeft() > 0) {
+                updateCooldownUI();
+            }
             form.onsubmit = function (e) {
                 e.preventDefault();
+                if (getCooldownLeft() > 0) {
+                    updateCooldownUI();
+                    return;
+                }
                 const data = new FormData(form);
                 fetch('vote.php', {
                     method: 'POST',
@@ -388,8 +434,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(res => res.json())
                     .then(res => {
                         if (res.status === 'ok') {
+                            setVoteCooldown();
                             alarm('感谢您的投票！');
-                            result.innerHTML = '投票成功！<br>' + showVoteResult(res.data);
+                            form.style.display = 'none';
+                            result.innerHTML = '投票成功！<br>' + showVoteResult(res.data) + `<br>${votedText}`;
+                            updateCooldownUI();
                         } else {
                             result.innerHTML = res.msg;
                         }

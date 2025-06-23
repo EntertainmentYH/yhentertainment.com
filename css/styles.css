@@ -5012,3 +5012,15 @@ button.btn--pill {
  * ------------------------------------------------------------------- */
 
 /*Entertainment_YH*/
+/* 投票按钮悬停渐变变深 */
+.vote-btn {
+    background: linear-gradient(90deg, #00bfae 0%, #009e90 100%);
+    transition: background 0.3s, transform 0.1s;
+}
+.vote-btn:hover {
+    background: linear-gradient(90deg, #009e90 0%, #007f6e 100%);
+}
+.vote-btn:active {
+    background: #009e90;
+    transform: scale(0.95);
+}

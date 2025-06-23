@@ -385,22 +385,22 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                     <div id="vote-area">
                         <form id="vote-form" style="display: flex; flex-direction: column; gap: 1em;">
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" name="option" value="option1" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option1" style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option1'] ?? ''); ?></span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" name="option" value="option2" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option2" style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option2'] ?? ''); ?></span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" name="option" value="option3" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option3" style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option3'] ?? ''); ?></span>
                             </label>
                             <label style="display: flex; align-items: center; gap: 1em; width: 100%;">
-                                <input type="radio" name="option" value="option3" style="accent-color: #00bfae;">
+                                <input type="radio" class="vote-btn" name="option" value="option4" style="accent-color: #00bfae;">
                                 <span
                                     style="flex: 1; padding: 1em; background: #fff; border-radius: 6px; border: 2px solid #000; color: #222;"><?php echo htmlspecialchars($lang['vote-option4'] ?? ''); ?></span>
                             </label>
