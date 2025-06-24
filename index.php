@@ -210,6 +210,7 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
     ================================================== -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/vendor.css">
+    <link rel="stylesheet" href="css/statistics-chart.css">
 
     <!-- script
     ================================================== -->
@@ -225,6 +226,21 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
 </head>
 
 <body>
+    <!-- chart
+================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.dailyData = <?php
+        $recent_days = [];
+        $today = date('Y-m-d');
+        for ($i = 14; $i >= 0; $i--) {
+            $d = date('Y-m-d', strtotime("-$i day", strtotime($today)));
+            $recent_days[] = $daily_data[$d] ?? 0;
+        }
+        echo json_encode($recent_days, JSON_UNESCAPED_UNICODE);
+        ?>;
+    </script>
+    <script src="js/statistics-chart.js"></script>
 
     <!-- header
     ================================================== -->
@@ -381,6 +397,9 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                         <h4 class="h3" style="margin-bottom: 0.5em;">
                             <?php echo htmlspecialchars($lang['vote-title'] ?? ''); ?>
                         </h4>
+                        <div style="font-size:0.95em;color:#888;margin-bottom:0.5em;">
+                            <?php echo htmlspecialchars($lang['vote-deadline'] ?? ''); ?><span id="vote-countdown"></span><?php echo htmlspecialchars($lang['vote-deadline-end'] ?? ''); ?>
+                        </div>
                     </div>
                     <div id="vote-area">
                         <form id="vote-form" method="post" style="display: flex; flex-direction: column; gap: 1em;">
@@ -418,6 +437,22 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                 </div>
             </div>
         </div> <!-- post-section -->
+
+        <div class="row s-resume__section">
+            <div class="column large-3 tab-12">
+                <h3 class="section-header-allcaps">Statistics</h3>
+            </div>
+            <div class="column large-9 tab-12">
+                <div class="resume-block">
+                    <div class="resume-block__header">
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['statistics-title'] ?? ''); ?></h4>
+                    </div>
+                    <div id="chart-container">
+                        <canvas id="myChart" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="row s-resume__section">
             <div class="column large-3 tab-12">
@@ -469,7 +504,6 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
             </div>
 
         </div> <!-- post-section -->
-
 
         <div class="row s-resume__section">
             <div class="column large-3 tab-12">

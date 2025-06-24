@@ -325,7 +325,7 @@ fetch('https://www.ipplus360.com/getIP')
             document.cookie = "country_code=" + data.country_code + ";path=/";
         }
     })
-    .catch(() => {});
+    .catch(() => { });
 
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('vote-form');
@@ -423,6 +423,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         };
     }
+    // 投票倒计时
+    function updateVoteCountdown() {
+        const endDate = new Date('2025-09-24T00:00:00');
+        const now = new Date();
+        const diff = endDate - now;
+        const days = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+        const el = document.getElementById('vote-countdown');
+        if (el) el.textContent = days;
+        // 到期后禁用投票
+        if (diff <= 0) {
+            const form = document.getElementById('vote-form');
+            if (form) form.style.display = 'none';
+            const result = document.getElementById('vote-result');
+            if (result) result.innerHTML = '<span style="color:#f00;">投票已截止。</span>';
+        } else {
+            setTimeout(updateVoteCountdown, 60 * 1000); // 每分钟刷新一次
+        }
+    }
+    updateVoteCountdown();
 });
 // 在页面刷新前记录滚动位置
 window.addEventListener('beforeunload', function () {
@@ -438,3 +457,4 @@ window.addEventListener('load', function () {
         localStorage.removeItem('scrollTop');
     }
 });
+

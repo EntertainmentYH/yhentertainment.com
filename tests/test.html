@@ -1,0 +1,106 @@
+<!-- 统计图折线图示例 -->
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <title>折线统计图</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #chart-container {
+            width: 90%;
+            max-width: 700px;
+            margin: 40px auto;
+            background: #e3f6fd;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(155, 228, 241, 0.5);
+        }
+
+        .inputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+
+        .inputs input {
+            width: 50px;
+            padding: 4px;
+            border-radius: 4px;
+            border: 1px solid #b0d8ef;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart-container">
+        <canvas id="myChart" height="300"></canvas>
+        <div class="inputs" id="inputs"></div>
+    </div>
+    <script>
+        // 初始数据
+        const labels = Array.from({ length: 15 }, (_, i) => `点${i + 1}`);
+        let dataArr = Array(15).fill(0);
+
+        // 创建输入框
+        const inputsDiv = document.getElementById('inputs');
+        dataArr.forEach((v, i) => {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = v;
+            input.min = 0;
+            input.max = 9999;
+            input.dataset.idx = i;
+            input.addEventListener('input', function () {
+                dataArr[+this.dataset.idx] = Number(this.value);
+                updateChart();
+            });
+            inputsDiv.appendChild(input);
+        });
+
+        // Chart.js 配置
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '统计数据',
+                    data: dataArr,
+                    fill: true,
+                    backgroundColor: 'rgba(0,191,255,0.15)', // 浅蓝色区域
+                    borderColor: '#00bfae',
+                    tension: 0.4, // 平滑曲线
+                    pointBackgroundColor: '#00bfae',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: {
+                    duration: 800,
+                    easing: 'easeOutQuart'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // 更新图表
+        function updateChart() {
+            chart.data.datasets[0].data = dataArr;
+            chart.update();
+        }
+    </script>
+</body>
+
+</html>
