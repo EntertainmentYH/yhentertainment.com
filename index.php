@@ -232,7 +232,11 @@ if (!empty($config['site_start_date'])) {
 
     <!-- script
     ================================================== -->
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
     <script defer src="js/vendor/fontawesome-free-6.7.2-web/js/all.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/statistics-chart.js"></script>
 
     <!-- favicons
     ================================================== -->
@@ -244,9 +248,6 @@ if (!empty($config['site_start_date'])) {
 </head>
 
 <body>
-    <!-- chart
-================================================== -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         window.dailyData = <?php
         $recent_days = [];
@@ -1087,12 +1088,6 @@ if (!empty($config['site_start_date'])) {
             </div> <!-- end ss-go-top -->
 
     </footer>
-
-
-    <!-- Java Script
-    ================================================== -->
-    <script src="js/plugins.js"></script>
-    <script src="js/main.js"></script>
 
 </body>
 
