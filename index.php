@@ -232,11 +232,7 @@ if (!empty($config['site_start_date'])) {
 
     <!-- script
     ================================================== -->
-    <script src="js/plugins.js"></script>
-    <script src="js/main.js"></script>
     <script defer src="js/vendor/fontawesome-free-6.7.2-web/js/all.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/statistics-chart.js"></script>
 
     <!-- favicons
     ================================================== -->
@@ -259,7 +255,6 @@ if (!empty($config['site_start_date'])) {
         echo json_encode($recent_days, JSON_UNESCAPED_UNICODE);
         ?>;
     </script>
-    <script src="js/statistics-chart.js"></script>
 
     <!-- header
     ================================================== -->
@@ -648,63 +643,63 @@ if (!empty($config['site_start_date'])) {
                     <p>
                         &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-citation-1'] ?? ''); ?> <br \>
                         &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-citation-2'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-1'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-1-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-1-2'] ?? ''); ?><br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-2'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-3'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-3'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-3'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-4'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-4'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-3'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-4'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-5'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-3'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-6'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-3'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-4'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-7'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-3'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-8'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-3'] ?? ''); ?> <br \>
-                        <blockquote>
-                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-9'] ?? ''); ?>
-                        </blockquote>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-1'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-2'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-3'] ?? ''); ?> <br \>
-                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-4'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-1'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-1-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-1-2'] ?? ''); ?><br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-2'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-3'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-3'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-3'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-4'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-4'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-3'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-4'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-5'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-3'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-6'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-3'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-4'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-7'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-3'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-8'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-3'] ?? ''); ?> <br \>
+                    <blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-9'] ?? ''); ?>
+                    </blockquote>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-1'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-2'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-3'] ?? ''); ?> <br \>
+                    &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-4'] ?? ''); ?> <br \>
                     </p>
 
 
@@ -1088,6 +1083,14 @@ if (!empty($config['site_start_date'])) {
             </div> <!-- end ss-go-top -->
 
     </footer>
+
+    <!-- script
+    ================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/statistics-chart.js"></script>
+    <script src="js/statistics-chart.js"></script>
 
 </body>
 
