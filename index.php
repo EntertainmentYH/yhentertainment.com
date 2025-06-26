@@ -9,6 +9,100 @@ if (file_exists($config_file)) {
     $config = json_decode(file_get_contents($config_file), true);
 }
 
+// 语言代码自动检测，优先GET参数
+$lang_code = 'zh-cn'; // 默认
+
+if (isset($_GET['lang'])) {
+    $lang = strtolower($_GET['lang']);
+    switch ($lang) {
+        case 'zh-cn':
+            $lang_code = 'zh-cn';
+            setcookie('country_code', 'cn', time() + 3600 * 24 * 30, '/');
+            break;
+        case 'en':
+            $lang_code = 'en';
+            setcookie('country_code', 'us', time() + 3600 * 24 * 30, '/');
+            break;
+        case 'zh-tw':
+            $lang_code = 'zh-tw';
+            setcookie('country_code', 'tw', time() + 3600 * 24 * 30, '/');
+            break;
+        default:
+            // keep default
+            break;
+    }
+} elseif (isset($_COOKIE['country_code'])) {
+    $country_code = strtolower($_COOKIE['country_code']);
+    switch ($country_code) {
+        case 'us':
+            $lang_code = 'en';
+            break;
+        case 'tw':
+        case 'hk':
+        case 'mo':
+            $lang_code = 'zh-tw';
+            break;
+        case 'cn':
+            $lang_code = 'zh-cn';
+            break;
+        default:
+            // keep default
+            break;
+    }
+} else {
+    function getUserIP()
+    {
+        if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+            return $_SERVER['HTTP_CLIENT_IP'];
+        } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            return explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+        } else {
+            return $_SERVER['REMOTE_ADDR'];
+        }
+    }
+
+    function detectLangByIP($ip)
+    {
+        if ($ip === '127.0.0.1' || $ip === '::1') {
+            return 'zh-cn';
+        }
+        $url = "https://v.api.aa1.cn/api/chinaip/?ip=" . urlencode($ip);
+        $response = @file_get_contents($url);
+        if ($response !== false) {
+            if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $response, $matches)) {
+                $json = trim($matches[1]);
+                $data = json_decode($json, true);
+                if (isset($data['data']['Cc_Code'])) {
+                    $cc = strtoupper($data['data']['Cc_Code']);
+                    switch ($cc) {
+                        case 'CN':
+                            return 'zh-cn';
+                        case 'US':
+                            return 'en';
+                        case 'TW':
+                        case 'HK':
+                        case 'MO':
+                            return 'zh-tw';
+                        default:
+                            return 'en';
+                    }
+                }
+            }
+        }
+        return 'zh-cn';
+    }
+
+    $ip = getUserIP();
+    $lang_code = detectLangByIP($ip);
+}
+
+// 读取对应语言文件
+$lang_file = __DIR__ . "/languages/{$lang_code}.json";
+if (!file_exists($lang_file)) {
+    $lang_file = __DIR__ . "/languages/zh-cn.json"; // 回退
+}
+$lang = json_decode(@file_get_contents($lang_file), true) ?? [];
+
 // 统计文件路径
 $statistics_dir = __DIR__ . '/statistics';
 if (!is_dir($statistics_dir))
@@ -107,82 +201,6 @@ if (!empty($config['site_start_date'])) {
         $site_days = floor(($now - $start) / 86400) + 1;
     }
 }
-
-// 语言代码自动检测
-$lang_code = 'zh-cn'; // 默认
-
-function getUserIP()
-{
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        return $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        return explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
-    } else {
-        return $_SERVER['REMOTE_ADDR'];
-    }
-}
-
-function detectLangByIP($ip)
-{
-    // 本地开发环境
-    if ($ip === '127.0.0.1' || $ip === '::1') {
-        return 'zh-cn';
-    }
-
-    $url = "https://v.api.aa1.cn/api/chinaip/?ip=" . urlencode($ip);
-    $response = @file_get_contents($url);
-
-    if ($response !== false) {
-        if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $response, $matches)) {
-            $json = trim($matches[1]);
-            $data = json_decode($json, true);
-            if (isset($data['data']['Cc_Code'])) {
-                $cc = strtoupper($data['data']['Cc_Code']);
-                if ($cc === 'CN')
-                    return 'zh-cn';
-                if ($cc === 'US')
-                    return 'en';
-                if (in_array($cc, ['TW', 'HK', 'MO']))
-                    return 'zh-tw';
-                return 'en';
-            }
-        }
-    }
-    return 'zh-cn';
-}
-
-$ip = getUserIP();
-$lang_code = detectLangByIP($ip);
-
-// // 旧的语言检测逻辑（已弃用）
-
-// // 1. 优先用cookie中的country_code
-// if (isset($_COOKIE['country_code'])) {
-//     $country_code = strtolower($_COOKIE['country_code']);
-//     if ($country_code === 'us') {
-//         $lang_code = 'en';
-//     } elseif ($country_code === 'tw' || $country_code === 'hk' || $country_code === 'mo') {
-//         $lang_code = 'zh-tw';
-//     } elseif ($country_code === 'cn') {
-//         $lang_code = 'zh-cn';
-//     }
-// } else {
-//     // 2. 否则用浏览器语言
-//     $accept_lang = strtolower($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '');
-//     if (strpos($accept_lang, 'en') === 0) {
-//         $lang_code = 'en';
-//     } elseif (strpos($accept_lang, 'zh-tw') === 0 || strpos($accept_lang, 'zh-hk') === 0) {
-//         $lang_code = 'zh-tw';
-//     }
-// }
-
-// 读取对应语言文件
-$lang_file = __DIR__ . "/languages/{$lang_code}.json";
-if (!file_exists($lang_file)) {
-    $lang_file = __DIR__ . "/languages/zh-cn.json"; // 回退
-}
-$lang = json_decode(@file_get_contents($lang_file), true) ?? [];
-
 ?>
 
 <!DOCTYPE html>
@@ -263,19 +281,6 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                 </ul>
             </nav>
         </div> <!-- end row -->
-        <?php
-        // 强制切换语言，不受其他因素影响
-        if (isset($_GET['lang'])) {
-            $lang = strtolower($_GET['lang']);
-            if (in_array($lang, ['zh-cn', 'en', 'zh-tw'])) {
-                setcookie('country_code', $lang === 'en' ? 'us' : ($lang === 'zh-tw' ? 'tw' : 'cn'), time() + 3600 * 24 * 30, '/');
-                $url = strtok($_SERVER["REQUEST_URI"], '?');
-                // 立即刷新页面，确保切换生效
-                header("Location: " . htmlspecialchars($url, ENT_QUOTES));
-                exit;
-            }
-        }
-        ?>
 
         <a class="s-header__menu-toggle" href="#0" title="Menu">
             <span class="s-header__menu-icon"></span>
@@ -398,7 +403,8 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                             <?php echo htmlspecialchars($lang['vote-title'] ?? ''); ?>
                         </h4>
                         <div style="font-size:0.95em;color:#888;margin-bottom:0.5em;">
-                            <?php echo htmlspecialchars($lang['vote-deadline'] ?? ''); ?><span id="vote-countdown"></span><?php echo htmlspecialchars($lang['vote-deadline-end'] ?? ''); ?>
+                            <?php echo htmlspecialchars($lang['vote-deadline'] ?? ''); ?><span
+                                id="vote-countdown"></span><?php echo htmlspecialchars($lang['vote-deadline-end'] ?? ''); ?>
                         </div>
                     </div>
                     <div id="vote-area">
@@ -596,7 +602,7 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
             </div>
             <div class="column large-9 tab-12">
                 <div class="resume-block">
-                    <!-- utilities 001 -->
+                    <!-- article 001 -->
                     <div class="resume-block__header">
                         <h4 class="h3"><?php echo htmlspecialchars($lang['article001-title'] ?? ''); ?></h4>
                         <p class="resume-block__header-meta">
@@ -623,6 +629,81 @@ $lang = json_decode(@file_get_contents($lang_file), true) ?? [];
                     </blockquote>
                     &emsp;&emsp;<?php echo htmlspecialchars($lang['article001-paragraph-9'] ?? ''); ?>
                     <?php echo htmlspecialchars($lang['article001-paragraph-10'] ?? ''); ?>
+                    </p>
+
+                    <hr style="border: none; border-top: 2px dashed #00bfae; margin: 2.5em 0; width: 80%;">
+                    <!-- article 002 -->
+                    <div class="resume-block__header">
+                        <h4 class="h3"><?php echo htmlspecialchars($lang['article002-title'] ?? ''); ?></h4>
+                        <p class="resume-block__header-meta">
+                            <span><?php echo htmlspecialchars($lang['ID'] ?? ''); ?></span>
+                            <span><?php echo htmlspecialchars($lang['article002-description'] ?? ''); ?></span>
+                            <span class="resume-block__header-date">
+                                June 26<sup>th</sup>, 2025 - Present
+                            </span>
+                        </p>
+                    </div>
+
+                    <p>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-citation-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-citation-2'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-1'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-1-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-1-2'] ?? ''); ?><br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-2'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-2-3'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-3'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-3'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-3-4'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-4'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-3'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-4-4'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-5'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-5-3'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-6'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-3'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-6-4'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-7'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-7-3'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-8'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-8-3'] ?? ''); ?> <br \>
+                        <blockquote>
+                            &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-subtitle-9'] ?? ''); ?>
+                        </blockquote>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-1'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-2'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-3'] ?? ''); ?> <br \>
+                        &emsp;&emsp;<?php echo htmlspecialchars($lang['article002-paragraph-9-4'] ?? ''); ?> <br \>
                     </p>
 
 
