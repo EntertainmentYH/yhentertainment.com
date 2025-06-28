@@ -5017,10 +5017,93 @@ button.btn--pill {
     background: linear-gradient(90deg, #00bfae 0%, #009e90 100%);
     transition: background 0.3s, transform 0.1s;
 }
+
 .vote-btn:hover {
     background: linear-gradient(90deg, #009e90 0%, #007f6e 100%);
 }
+
 .vote-btn:active {
     background: #009e90;
     transform: scale(0.95);
+}
+
+#side-toc {
+    position: fixed;
+    top: 100px;
+    right: 32px;
+    width: auto;
+    background: rgba(255, 255, 255, 0.30);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    z-index: 999;
+    padding: 18px 16px;
+    font-size: 15px;
+    max-height: 70vh;
+    overflow-y: auto;
+    transition: opacity 0.3s;
+    overflow-x: hidden;
+}
+
+#side-toc.toc-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#side-toc ul {
+    list-style: none;
+    margin: 0;
+    padding-left: 0;
+}
+
+#side-toc li {
+    margin: 6px 0;
+}
+
+#side-toc a {
+    color: #444;
+    text-decoration: none;
+    padding: 2px 6px 2px 26px;
+    /* 为方块留空间 */
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+    display: inline-block;
+    position: relative;
+    word-break: break-all;
+    white-space: normal;
+}
+
+#side-toc a::before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    background: #eee;
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: background 0.2s;
+}
+
+#side-toc a.active::before {
+    background: orange;
+}
+
+#side-toc a.active {
+    background: orange;
+    color: #fff;
+    font-weight: bold;
+}
+
+#side-toc ul ul {
+    margin-left: 18px;
+    border-left: 2px solid #eee;
+    padding-left: 10px;
+}
+
+@media (max-width: 900px) {
+    #side-toc {
+        display: none;
+    }
 }

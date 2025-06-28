@@ -458,3 +458,61 @@ window.addEventListener('load', function () {
     }
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+    const toc = document.getElementById('side-toc');
+    const main = document.getElementById('main');
+    if (!toc || !main) return;
+    const links = toc.querySelectorAll('a');
+    const sections = Array.from(links).map(link => {
+        const id = link.getAttribute('href').replace('#', '');
+        return document.getElementById(id);
+    });
+
+    // 目录显示/隐藏逻辑，只在#main区域出现
+    function checkTocVisible() {
+        const rect = main.getBoundingClientRect();
+        // 只要main部分有一部分在视口内就显示目录
+        const inMain = rect.bottom > 60 && rect.top < window.innerHeight - 60;
+        if (inMain) {
+            toc.classList.remove('toc-hidden');
+        } else {
+            toc.classList.add('toc-hidden');
+        }
+    }
+
+    // 目录锚点高亮，并修正定位
+    function onScroll() {
+        let index = 0;
+        for (let i = 0; i < sections.length; i++) {
+            // 向上偏移150px
+            if (sections[i] && window.scrollY + 120 >= sections[i].offsetTop - 150) {
+                index = i;
+            }
+        }
+        links.forEach(link => link.classList.remove('active'));
+        if (links[index]) links[index].classList.add('active');
+    }
+
+    // 平滑滚动时也向上偏移200px
+    links.forEach(link => {
+        link.addEventListener('click', function (e) {
+            const id = this.getAttribute('href').replace('#', '');
+            const target = document.getElementById(id);
+            if (target) {
+                e.preventDefault();
+                const top = target.getBoundingClientRect().top + window.scrollY - 200;
+                window.scrollTo({ top, behavior: 'smooth' });
+            }
+        });
+    });
+
+
+    window.addEventListener('scroll', () => {
+        checkTocVisible();
+        onScroll();
+    });
+    window.addEventListener('resize', checkTocVisible);
+
+    checkTocVisible();
+    onScroll();
+});
