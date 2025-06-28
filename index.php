@@ -482,6 +482,8 @@ if (!empty($config['site_start_date'])) {
                                 &emsp;&emsp;<?php echo htmlspecialchars($lang['announcement002-text'] ?? ''); ?><br \>
                             </p>
 
+                            <hr style="border: none; border-top: 2px dashed #00bfae; margin: 2.5em 0; width: 80%;">
+
                             <!-- announcement-code 001 -->
                             <div class="resume-block__header">
                                 <h4 class="h3">
@@ -536,6 +538,8 @@ if (!empty($config['site_start_date'])) {
                                 <p>
                                     <?php echo htmlspecialchars($lang['post002-text'] ?? ''); ?>
                                 </p>
+
+                                <hr style="border: none; border-top: 2px dashed #00bfae; margin: 2.5em 0; width: 80%;">
 
                                 <div class="resume-block__header">
                                     <h4 class="h3"><?php echo htmlspecialchars($lang['post001-title'] ?? ''); ?>
@@ -877,7 +881,7 @@ if (!empty($config['site_start_date'])) {
 
 
                                 <!-- portfolio
-    ================================================== -->
+                                ===================== -->
                                 <section id="portfolio" class="s-portfolio target-section">
                                     <section id="photos">
 
