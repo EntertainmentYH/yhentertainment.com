@@ -283,7 +283,7 @@ if (!empty($config['site_start_date'])) {
                                 </li>
                                 <li<?php if ($lang_code === 'uy')
                         echo ' class="current"'; ?>>
-                        <a href="?lang=uy">简体中文</a>
+                        <a href="?lang=uy">ئۇيغۇرچە</a>
                         </li>
                 </ul>
             </nav>
