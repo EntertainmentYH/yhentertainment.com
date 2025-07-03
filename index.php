@@ -27,6 +27,10 @@ if (isset($_GET['lang'])) {
             $lang_code = 'zh-tw';
             setcookie('country_code', 'tw', time() + 3600 * 24 * 30, '/');
             break;
+        case "uy":
+            $lang_code = 'uy';
+            setcookie('country_code', 'uy', time() + 3600 * 24 * 30, '/');
+            break;
         default:
             // keep default
             break;
@@ -44,6 +48,9 @@ if (isset($_GET['lang'])) {
             break;
         case 'cn':
             $lang_code = 'zh-cn';
+            break;
+        case 'uy':
+            $lang_code = 'uy';
             break;
         default:
             // keep default
@@ -274,6 +281,10 @@ if (!empty($config['site_start_date'])) {
                                 echo ' class="current"'; ?>>
                                 <a href="?lang=zh-tw">繁體中文</a>
                                 </li>
+                                <li<?php if ($lang_code === 'uy')
+                        echo ' class="current"'; ?>>
+                        <a href="?lang=uy">简体中文</a>
+                        </li>
                 </ul>
             </nav>
         </div> <!-- end row -->
