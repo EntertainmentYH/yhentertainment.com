@@ -443,20 +443,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     updateVoteCountdown();
 });
-// 在页面刷新前记录滚动位置
-window.addEventListener('beforeunload', function () {
-    localStorage.setItem('scrollTop', window.scrollY || window.pageYOffset);
-});
-
-// 页面加载后恢复滚动位置
-window.addEventListener('load', function () {
-    const scrollTop = localStorage.getItem('scrollTop');
-    if (scrollTop) {
-        window.scrollTo(0, parseInt(scrollTop, 10));
-        // 恢复后清除，避免影响下次
-        localStorage.removeItem('scrollTop');
-    }
-});
 
 document.addEventListener('DOMContentLoaded', function () {
     const toc = document.getElementById('side-toc');
