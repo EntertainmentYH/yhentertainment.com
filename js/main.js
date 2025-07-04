@@ -502,3 +502,21 @@ document.addEventListener('DOMContentLoaded', function () {
     checkTocVisible();
     onScroll();
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    const toc = document.getElementById('side-toc');
+    const btn = document.getElementById('toc-toggle-btn');
+    if (!toc || !btn) return;
+
+    let hidden = false;
+
+    btn.addEventListener('click', function () {
+        hidden = !hidden;
+        toc.classList.toggle('toc-hidden', hidden);
+        btn.textContent = hidden ? (window.lang_show_directory || '显示目录') : (window.lang_hide_directory || '隐藏目录');
+    });
+
+    // 多语言支持（可选）
+    window.lang_show_directory = "<?php echo htmlspecialchars($lang['show-directory'] ?? '显示目录'); ?>";
+    window.lang_hide_directory = "<?php echo htmlspecialchars($lang['hide-directory'] ?? '隐藏目录'); ?>";
+});
