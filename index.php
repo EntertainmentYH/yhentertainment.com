@@ -1233,7 +1233,6 @@ if (!empty($config['site_start_date'])) {
                     </ul>
                 </li>
             </ul>
-            <button class="toc-toggle-btn" id="toc-toggle-btn"><?php echo htmlspecialchars($lang['hide-directory'] ?? ''); ?></button>
         </nav>
 
 </body>
