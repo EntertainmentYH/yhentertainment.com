@@ -369,7 +369,7 @@ if (!empty($config['site_start_date'])) {
 
         <div class="row">
             <div class="column large-3 tab-12">
-                <img class="s-about__pic" src="https://2.z.wiki/autoupload/20250529/S1u7/690X690/icon.jpg" alt="">
+                <img class="s-about__pic" src="https://s41.ax1x.com/2026/03/12/peAVAZd.jpg" alt="">
             </div>
             <div class="column large-9 tab-12 s-about__content">
                 <h3><?php echo htmlspecialchars($lang['about-web'] ?? ''); ?></h3>
