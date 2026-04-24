@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 $ip = $_SERVER['REMOTE_ADDR'];
 
@@ -431,6 +431,27 @@ if (!empty($config['site_start_date'])) {
                 </div>
             </div>
 
+            <section id="article">
+                        <div class="row s-resume__section">
+                            <div class="column large-3 tab-12">
+                                <h3 class="section-header-allcaps">article</h3>
+                            </div>
+                            <div class="column large-9 tab-12">
+                                <div class="resume-block">
+
+                                    <div class="resume-block__header">
+                                        <h4 class="h3"><a href="article\tutorialOfMinecraftServerInterconnectionByUsingAstral.html"><span><?php echo htmlspecialchars($lang['article1-title'] ?? ''); ?></span></a></h4>
+                                        <p class="resume-block__header-meta">
+                                            <span class="resume-block__header-date">
+                                                Published on Apr 25<sup>th</sup>, 2026
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                </div> <!-- end resume-block -->
+                            </div>
+                        </div> <!-- s-resume__section -->
+
             <section id="post">
 
                 <div class="row s-resume__section">
@@ -627,6 +648,22 @@ if (!empty($config['site_start_date'])) {
 
                                         <p>
                                             <?php echo htmlspecialchars($lang['ringeal007-description'] ?? ''); ?>
+                                        </p>
+
+                                        <hr style="border: none; border-top: 2px dashed #00bfae; margin: 2.5em 0; width: 80%;">
+
+                                        <div class="resume-block__header">
+                                            <h4 class="h3">Bihrys</h4>
+                                            <p class="resume-block__header-meta">
+                                                <span><a href="https://bihrys.com"><?php echo htmlspecialchars($lang['bihrys'] ?? ''); ?></a></span>
+                                                <span class="resume-block__header-date">
+                                                    Added in Apr 25<sup>th</sup>, 2026
+                                                </span>
+                                            </p>
+                                        </div>
+
+                                        <p>
+                                            <?php echo htmlspecialchars($lang['bihrys-description'] ?? ''); ?>
                                         </p>
 
                                     </div> <!-- end resume-block -->
@@ -1012,6 +1049,9 @@ if (!empty($config['site_start_date'])) {
                     <ul>
                         <li><a href="#statistics"
                                 class=""><?php echo htmlspecialchars($lang['statistics'] ?? ''); ?></a>
+                        </li>
+                         <li><a href="#article"
+                                class=""><?php echo htmlspecialchars($lang['article'] ?? ''); ?></a>
                         </li>
                         <li><a href="#post" class=""><?php echo htmlspecialchars($lang['post'] ?? ''); ?></a></li>
                         <li><a href="#utilities" class=""><?php echo htmlspecialchars($lang['utilities'] ?? ''); ?></a>
