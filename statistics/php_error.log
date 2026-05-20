@@ -1,0 +1,30 @@
+[26-Apr-2026 10:30:40 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function mb_strlen() in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php:225
+Stack trace:
+#0 {main}
+  thrown in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php on line 225
+[26-Apr-2026 11:13:14 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function mb_stripos() in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php:322
+Stack trace:
+#0 C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php(329): {closure}('test\ntestblock\n...')
+#1 {main}
+  thrown in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php on line 322
+[27-Apr-2026 11:22:43 UTC] PHP Warning:  session_start(): Session cannot be started after headers have already been sent in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php on line 16
+[27-Apr-2026 11:23:07 UTC] PHP Warning:  session_start(): Session cannot be started after headers have already been sent in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php on line 16
+[27-Apr-2026 11:23:07 UTC] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php:1) in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\index.php on line 589
+[20-May-2026 12:22:45 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:45 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:47 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:48 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:51 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:56 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:57 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:57 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:57 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:22:58 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:23:08 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:23:10 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:23:10 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:23:10 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:26:19 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:26:20 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:26:21 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553
+[20-May-2026 12:26:25 UTC] PHP Parse error:  Unclosed '{' on line 4 in C:\Users\33292\Desktop\Personal website\yhentertainment.com\yhentertainment.com\handlers\messages.php on line 553

@@ -1,5 +1,609 @@
-<?php require __DIR__ . '/config.php'; ?>
-<?php require __DIR__ . '/handlers/messages.php'; ?>
+<?php
+// 做出的临时性修改
+// 1.暂时禁用离线屏蔽词
+// 2.暂时禁用IP限制
+// Enable error display/logging temporarily for debugging HTTP 500
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('log_errors', 1);
+error_reporting(E_ALL);
+$log_dir = __DIR__ . '/statistics';
+if (!is_dir($log_dir)) @mkdir($log_dir, 0777, true);
+ini_set('error_log', $log_dir . '/php_error.log');
+$ip = $_SERVER['REMOTE_ADDR'] ?? '';
+// start session for flash messages
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Provide lightweight mbstring fallbacks when mbstring extension is not available
+if (!function_exists('mb_strlen')) {
+    function mb_strlen($str, $encoding = 'UTF-8') {
+        if ($encoding !== 'UTF-8') {
+            $str = mb_convert_encoding($str, 'UTF-8', $encoding);
+        }
+        $arr = preg_split('//u', $str, -1, PREG_SPLIT_NO_EMPTY);
+        return $arr === false ? strlen($str) : count($arr);
+    }
+}
+if (!function_exists('mb_substr')) {
+    function mb_substr($str, $start, $length = NULL, $encoding = 'UTF-8') {
+        if ($encoding !== 'UTF-8' && function_exists('mb_convert_encoding')) {
+            $str = mb_convert_encoding($str, 'UTF-8', $encoding);
+        }
+        $arr = preg_split('//u', $str, -1, PREG_SPLIT_NO_EMPTY);
+        if ($arr === false) return '';
+        if ($length === NULL) {
+            $slice = array_slice($arr, $start);
+        } else {
+            $slice = array_slice($arr, $start, $length);
+        }
+        return implode('', $slice);
+    }
+}
+
+// Provide mb_stripos fallback if mbstring not available
+if (!function_exists('mb_stripos')) {
+    function mb_stripos($haystack, $needle, $offset = 0, $encoding = 'UTF-8') {
+        if ($needle === '') return 0;
+        // normalize encoding if possible
+        if ($encoding !== 'UTF-8' && function_exists('mb_convert_encoding')) {
+            $haystack = mb_convert_encoding($haystack, 'UTF-8', $encoding);
+            $needle = mb_convert_encoding($needle, 'UTF-8', $encoding);
+            $encoding = 'UTF-8';
+        }
+
+        // helper to lowercase using mb_strtolower when available
+        $lower = function($s) use ($encoding) {
+            if (function_exists('mb_strtolower')) return mb_strtolower($s, $encoding);
+            return strtolower($s);
+        };
+
+        $hay_len = mb_strlen($haystack, $encoding);
+        $needle_len = mb_strlen($needle, $encoding);
+        if ($offset < 0) $offset = 0;
+        if ($needle_len === 0) return 0;
+
+        $hay_lower = $lower($haystack);
+        $needle_lower = $lower($needle);
+
+        // linear search using mb_substr
+        for ($i = $offset; $i <= $hay_len - $needle_len; $i++) {
+            $chunk = mb_substr($hay_lower, $i, $needle_len, $encoding);
+            if ($chunk === $needle_lower) return $i;
+        }
+        return false;
+    }
+}
+
+// 读取配置
+$config_file = __DIR__ . '/configuration.json';
+$config = [];
+if (file_exists($config_file)) {
+    $config = json_decode(file_get_contents($config_file), true);
+}
+
+// 默认语言
+$lang_code = 'zh-cn';
+
+// 1. 尝试使用 ip-api.com 检测国家代码
+$ip = $_SERVER['REMOTE_ADDR'];
+$json = @file_get_contents("http://ip-api.com/json/$ip");
+$data = json_decode($json, true);
+
+if ($data && $data['status'] === 'success') {
+    $country_code = strtoupper($data['countryCode']);
+    // capture timezone returned by ip-api (e.g. "Asia/Shanghai")
+    $visitor_timezone = !empty($data['timezone']) ? $data['timezone'] : null;
+    if ($visitor_timezone) setcookie('visitor_tz', $visitor_timezone, time()+3600*24*30, '/');
+} elseif (isset($_COOKIE['country_code'])) {
+    // 2. IP 检测失败，尝试使用 Cookie
+    $country_code = strtoupper($_COOKIE['country_code']);
+    $visitor_timezone = $_COOKIE['visitor_tz'] ?? null;
+} else {
+    $country_code = ''; // 没有任何来源
+    $visitor_timezone = $_COOKIE['visitor_tz'] ?? null;
+}
+
+// 根据国家代码匹配语言
+switch ($country_code) {
+    case 'US': // United States
+    case 'CA': // Canada
+    case 'GB': // United Kingdom
+    case 'AU': // Australia
+    case 'NZ': // New Zealand
+    case 'IE': // Ireland
+    case 'SG': // Singapore
+    case 'EN': // England
+        $lang_code = 'en';
+        break;
+    case 'TW': // Taiwan
+    case 'HK': // Hong Kong
+    case 'MO': // Macau
+        $lang_code = 'zh-tw';
+        break;
+    case 'CN': // China
+        $lang_code = 'zh-cn';
+        break;
+    case 'JP': // Japan
+        $lang_code = 'jp';
+        break;
+    case 'RU': // Russia
+    case 'UA': // Ukraine
+        $lang_code = 'ru';
+        break;
+    default:
+        $lang_code = 'zh-cn';
+        break;
+}
+
+// Ensure we have a timezone string; fallback to server default if none
+if (empty($visitor_timezone)) {
+    try {
+        $visitor_timezone = date_default_timezone_get();
+    } catch(Exception $e) {
+        $visitor_timezone = 'UTC';
+    }
+}
+
+// 3. 最后优先 GET 覆盖（如果有参数）
+if (isset($_GET['lang'])) {
+    $lang = strtolower($_GET['lang']);
+    switch ($lang) {
+        case 'zh-cn':
+            $lang_code = 'zh-cn';
+            $country_code = 'CN';
+            break;
+        case 'en':
+            $lang_code = 'en';
+            $country_code = 'EN';
+            break;
+        case 'zh-tw':
+            $lang_code = 'zh-tw';
+            $country_code = 'TW';
+            break;
+        case 'jp':
+            $lang_code = 'jp';
+            $country_code = 'JP';
+            break;
+        case 'ru':
+            $lang_code = 'ru';
+            $country_code = 'RU';
+            break;
+        default:
+            // 无效参数则不变
+            break;
+    }
+}
+
+// 保存国家代码到 Cookie
+if (!empty($country_code)) {
+    setcookie('country_code', $country_code, time() + 3600 * 24 * 30, '/');
+}
+
+// 加载语言包
+$lang_file = __DIR__ . "/languages/{$lang_code}.json";
+if (!file_exists($lang_file)) {
+    $lang_file = __DIR__ . "/languages/zh-cn.json";
+}
+$lang = json_decode(@file_get_contents($lang_file), true) ?? [];
+
+// 读取对应语言文件
+$lang_file = __DIR__ . "/languages/{$lang_code}.json";
+if (!file_exists($lang_file)) {
+    $lang_file = __DIR__ . "/languages/zh-cn.json"; // 回退
+}
+$lang = json_decode(@file_get_contents($lang_file), true) ?? [];
+
+// 统计文件路径
+$statistics_dir = __DIR__ . '/statistics';
+if (!is_dir($statistics_dir))
+    mkdir($statistics_dir, 0777, true);
+
+$daily_counter_file = "{$statistics_dir}/daily_counter.json";
+$total_counter_file = "{$statistics_dir}/total_counter.json";
+$online_file = "{$statistics_dir}/online.txt";
+
+// 日期
+$today = date('Y-m-d');
+
+// ========== 防刷访问量 ==========
+// 每个IP冷却时间（秒）
+$ip_limit_seconds = 10;
+$ip_limiter_file = "{$statistics_dir}/ip_limiter.json";
+$ip_limiter = [];
+if (file_exists($ip_limiter_file)) {
+    $ip_limiter = json_decode(file_get_contents($ip_limiter_file), true);
+    if (!is_array($ip_limiter))
+        $ip_limiter = [];
+}
+$now_time = time();
+$ip = $_SERVER['REMOTE_ADDR'];
+$can_count = false;
+if (!isset($ip_limiter[$ip]) || ($now_time - $ip_limiter[$ip]) > $ip_limit_seconds) {
+    $can_count = true;
+    $ip_limiter[$ip] = $now_time;
+    file_put_contents($ip_limiter_file, json_encode($ip_limiter, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+}
+
+// ========== 单日访问量 ==========
+$daily_data = [];
+if (file_exists($daily_counter_file)) {
+    $daily_data = json_decode(file_get_contents($daily_counter_file), true);
+    if (!is_array($daily_data))
+        $daily_data = [];
+}
+switch (true) {
+    case !isset($daily_data[$today]):
+        $daily_data[$today] = 1;
+        break;
+    default:
+        $daily_data[$today]++;
+        break;
+}
+file_put_contents($daily_counter_file, json_encode($daily_data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+$today_count = $daily_data[$today];
+
+// ========== 总访问量 ==========
+$total_count = 0;
+if (file_exists($total_counter_file)) {
+    $total_count = (int) file_get_contents($total_counter_file);
+}
+$total_count++;
+file_put_contents($total_counter_file, $total_count);
+
+// ========== 在线人数 ==========
+$timeout = 1; // 1s
+$ip = $_SERVER['REMOTE_ADDR'];
+$now = time();
+$onlines = [];
+$new_onlines = [];
+$found = false;
+if (file_exists($online_file)) {
+    $onlines = file($online_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($onlines as $line) {
+        [$online_ip, $last_time] = explode('|', $line);
+        if ($now - $last_time < $timeout) {
+            if ($online_ip == $ip) {
+                if (!$found) { // 只更新一次当前IP
+                    $new_onlines[] = "$ip|$now";
+                    $found = true;
+                }
+                // 如果已经添加过当前IP，则跳过
+            } else {
+                $new_onlines[] = "$online_ip|$last_time";
+            }
+        }
+    }
+}
+if (!$found) {
+    $new_onlines[] = "$ip|$now";
+}
+file_put_contents($online_file, implode("\n", $new_onlines));
+$online_count = count($new_onlines);
+
+// ========== 网站运行时长 ==========
+$site_days = '';
+if (!empty($config['site_start_date'])) {
+    $site_days = '1';
+    $start = strtotime($config['site_start_date']);
+    $now = strtotime(date('Y-m-d'));
+
+    if ($start && $now >= $start) {
+        $site_days = floor(($now - $start) / 86400) + 1;
+    }
+}
+
+//POST 用户留言逻辑
+$submit_result = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
+    $action = $_POST['action'];
+    $messages_file = $statistics_dir . '/messages.json';
+    if (!is_dir($statistics_dir)) @mkdir($statistics_dir, 0777, true);
+    if (!file_exists($messages_file)) @file_put_contents($messages_file, json_encode([], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
+    // load messages
+    $messages = [];
+    $contents = @file_get_contents($messages_file);
+    if ($contents !== false) {
+        $decoded = json_decode($contents, true);
+        if (is_array($decoded)) $messages = $decoded;
+    }
+
+    // delete action: remove messages from same IP
+    if ($action === 'delete_message') {
+        $myip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $delete_id = $_POST['delete_id'] ?? null;
+        // remove only the message that matches both id and IP
+        $new = array_values(array_filter($messages, function($itm) use ($myip, $delete_id) {
+            if (!isset($itm['id'])) return true;
+            if ($delete_id !== null) {
+                // keep items that are NOT the one to delete
+                return !($itm['id'] === $delete_id && isset($itm['ip']) && $itm['ip'] === $myip);
+            }
+            // fallback: if no id provided, remove all from this IP
+            return !isset($itm['ip']) || $itm['ip'] !== $myip;
+        }));
+        $ok = @file_put_contents($messages_file, json_encode($new, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+        if ($ok === false) {
+            $submit_result = ['ok' => false, 'error' => 'delete_failed'];
+        } else {
+            // also remove any ip limiter entry so the IP is not blocked for an hour after delete
+            if (file_exists($ip_limiter_file)) {
+                $lim = json_decode(@file_get_contents($ip_limiter_file), true);
+                if (is_array($lim) && isset($lim[$myip])) {
+                    unset($lim[$myip]);
+                    @file_put_contents($ip_limiter_file, json_encode($lim, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+                }
+            }
+            $anchor_in = $_POST['anchor'] ?? null;
+            $submit_result = ['ok' => true, 'deleted' => true, 'anchor' => $anchor_in];
+        }
+    }
+
+    // submit action: enforce per-IP 1 per hour and remove older same-IP messages when posting allowed
+    if ($action === 'submit_message') {
+        $title = trim($_POST['title'] ?? '');
+        $search = trim($_POST['search'] ?? '');
+        $user_id = trim($_POST['user_id'] ?? '');
+        $myip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        // ===== 屏蔽词检测 =====
+        $blocked_file = $statistics_dir . '/blocked_words.json';
+        if (!file_exists($blocked_file)) @file_put_contents($blocked_file, json_encode([], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        $blocked_words = [];
+        $bw_contents = @file_get_contents($blocked_file);
+        $bw_dec = $bw_contents ? json_decode($bw_contents, true) : [];
+        if (is_array($bw_dec)) $blocked_words = $bw_dec;
+
+        // optional remote update if configured (disabled by default)
+        if (!empty($config['blocked_words_auto_update']) && !empty($config['blocked_words_source'])) {
+            $src = $config['blocked_words_source'];
+            $remote = @file_get_contents($src);
+            $rd = $remote ? json_decode($remote, true) : null;
+            if (is_array($rd)) {
+                $blocked_words = $rd;
+                @file_put_contents($blocked_file, json_encode($blocked_words, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+            }
+        }
+
+        // detection helper: case-insensitive substring match
+        $detect_blocked = function($text) use ($blocked_words) {
+            $text = (string)$text;
+            foreach ($blocked_words as $bw) {
+                $bw = trim((string)$bw);
+                if ($bw === '') continue;
+                if (mb_stripos($text, $bw) !== false) return $bw;
+            }
+            return false;
+        };
+
+        // check title, content, nickname
+        $combined = $title . "\n" . $search . "\n" . $user_id;
+
+        // By default, local blocklist can be enabled/disabled via configuration.json
+        // Set "use_local_blocklist": false to disable local substring blocking and rely solely on Deepseek
+        $blocked_found = false;
+        if (!empty($config['use_local_blocklist'])) {
+            $blocked_found = $detect_blocked($combined);
+            if ($blocked_found !== false) {
+                // record an alarm log for local block
+                $alarm_file = $statistics_dir . '/blocked_attempts.log';
+                $snippet = mb_substr($search, 0, 200);
+                $log_line = date('c') . " | IP:" . ($myip) . " | matched:" . $blocked_found . " | snippet:" . str_replace("\n", ' ', $snippet) . "\n";
+                @file_put_contents($alarm_file, $log_line, FILE_APPEND | LOCK_EX);
+                $submit_result = ['ok' => false, 'error' => 'blocked_word', 'blocked_word' => $blocked_found];
+
+                // send to deepseek for logging/analysis as well (non-blocking)
+                if (!empty($config['deepseek_enabled'])) {
+                    $endpoint = !empty($config['deepseek_endpoint']) ? $config['deepseek_endpoint'] : 'https://api.deepseek.example/v1/moderate';
+                    $api_key = !empty($config['deepseek_api_key']) ? $config['deepseek_api_key'] : null;
+                    $chat_body = json_encode([
+                        'model' => 'deepseek-v4-pro',
+                        'messages' => [
+                            ['role' => 'system', 'content' => 'You are a content moderation assistant. Respond in JSON with keys {"blocked": boolean, "reason": string, "violations": []} when applicable.'],
+                            ['role' => 'user', 'content' => $combined]
+                        ],
+                        'thinking' => ['type' => 'enabled'],
+                        'reasoning_effort' => 'high',
+                        'stream' => false
+                    ], JSON_UNESCAPED_UNICODE);
+                    $ds_response = null;
+                    if (function_exists('curl_init')) {
+                        $ch = curl_init();
+                        curl_setopt($ch, CURLOPT_URL, $endpoint);
+                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($ch, CURLOPT_POST, true);
+                        curl_setopt($ch, CURLOPT_POSTFIELDS, $chat_body);
+                        $headers = ['Content-Type: application/json'];
+                        if ($api_key) $headers[] = 'Authorization: Bearer ' . $api_key;
+                        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+                        $ds_response = @curl_exec($ch);
+                        @curl_close($ch);
+                    } else {
+                        $opts = array('http' => array(
+                            'method' => 'POST',
+                            'header' => "Content-Type: application/json\r\n" . ($api_key ? "Authorization: Bearer $api_key\r\n" : ''),
+                            'content' => $chat_body,
+                            'timeout' => 4
+                        ));
+                        $context = stream_context_create($opts);
+                        $ds_response = @file_get_contents($endpoint, false, $context);
+                    }
+                    try { @file_put_contents($statistics_dir . '/deepseek_responses.log', date('c') . " | fire_and_forget_response: " . ($ds_response ?? '') . "\n", FILE_APPEND | LOCK_EX); } catch(Exception $e) {}
+                }
+            }
+        }
+
+        // If not locally blocked, call Deepseek (if enabled) to determine blocking
+        if (empty($submit_result) && !empty($config['deepseek_enabled'])) {
+            $deepseek_blocked = false;
+            $deepseek_detail = null;
+            $endpoint = !empty($config['deepseek_endpoint']) ? $config['deepseek_endpoint'] : 'https://api.deepseek.example/v1/moderate';
+            $api_key = !empty($config['deepseek_api_key']) ? $config['deepseek_api_key'] : null;
+            $chat_body = json_encode([
+                'model' => 'deepseek-v4-pro',
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a content moderation assistant. Respond in JSON with keys {"blocked": boolean, "reason": string, "violations": []} when applicable.'],
+                    ['role' => 'user', 'content' => $combined]
+                ],
+                'thinking' => ['type' => 'enabled'],
+                'reasoning_effort' => 'high',
+                'stream' => false
+            ], JSON_UNESCAPED_UNICODE);
+            $response = null;
+            if (function_exists('curl_init')) {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $endpoint);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $chat_body);
+                $headers = ['Content-Type: application/json'];
+                if ($api_key) $headers[] = 'Authorization: Bearer ' . $api_key;
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+                $response = @curl_exec($ch);
+                curl_close($ch);
+            } else {
+                $opts = array('http' => array(
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n" . ($api_key ? "Authorization: Bearer $api_key\r\n" : ''),
+                    'content' => $chat_body,
+                    'timeout' => 8
+                ));
+                $context = stream_context_create($opts);
+                $response = @file_get_contents($endpoint, false, $context);
+            }
+
+            // write raw response for debugging
+            try { @file_put_contents($statistics_dir . '/deepseek_responses.log', date('c') . " | response: " . ($response ?? '') . "\n", FILE_APPEND | LOCK_EX); } catch(Exception $e) {}
+
+            if ($response) {
+                $dec = @json_decode($response, true);
+                if (is_array($dec)) {
+                    if (!empty($dec['blocked']) || !empty($dec['violation']) || (!empty($dec['violations']) && count($dec['violations'])>0)) {
+                        $deepseek_blocked = true;
+                        $deepseek_detail = json_encode($dec, JSON_UNESCAPED_UNICODE);
+                    }
+                    // try to interpret chat-style content
+                    if (!$deepseek_blocked && !empty($dec['choices']) && is_array($dec['choices']) && !empty($dec['choices'][0]['message']['content'])) {
+                        $content = $dec['choices'][0]['message']['content'];
+                        $inner = @json_decode($content, true);
+                        if (is_array($inner) && (!empty($inner['blocked']) || !empty($inner['violations']))) {
+                            $deepseek_blocked = !empty($inner['blocked']) || (!empty($inner['violations']) && count($inner['violations'])>0);
+                            $deepseek_detail = json_encode($inner, JSON_UNESCAPED_UNICODE);
+                        } else {
+                            $low = mb_strtolower($content);
+                            if (mb_stripos($low, 'violation') !== false || mb_stripos($low, 'not allowed') !== false || mb_stripos($low, 'unsafe') !== false || mb_stripos($low, 'blocked') !== false) {
+                                $deepseek_blocked = true;
+                                $deepseek_detail = mb_substr($content, 0, 800);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($deepseek_blocked) {
+                $alarm_file = $statistics_dir . '/blocked_attempts.log';
+                $snippet = mb_substr($search, 0, 200);
+                $log_line = date('c') . " | IP:" . ($myip) . " | deepseek_blocked | detail:" . str_replace("\n", ' ', $deepseek_detail) . " | snippet:" . str_replace("\n", ' ', $snippet) . "\n";
+                @file_put_contents($alarm_file, $log_line, FILE_APPEND | LOCK_EX);
+                $submit_result = ['ok' => false, 'error' => 'deepseek_blocked', 'detail' => $deepseek_detail];
+            }
+        }
+
+        // missing fields check
+        if (empty($submit_result) && ($search === '' || $user_id === '')) {
+            $submit_result = ['ok' => false, 'error' => 'missing_fields'];
+        }
+        // continue if not blocked
+        if (!empty($submit_result) && $submit_result['ok'] === false) {
+            // blocked or error already set, skip persisting
+        } else {
+            if (mb_strlen($title) > 150) $title = mb_substr($title, 0, 150);
+            if (mb_strlen($search) > 500) $search = mb_substr($search, 0, 500);
+            if (mb_strlen($user_id) > 100) $user_id = mb_substr($user_id, 0, 100);
+
+            // find latest message from this IP
+            $last_ts = 0;
+            foreach ($messages as $itm) {
+                if (isset($itm['ip']) && $itm['ip'] === $myip && isset($itm['ts'])) {
+                    $last_ts = max($last_ts, (int)$itm['ts']);
+                }
+            }
+            $now = time();
+            // allow disabling rate limit for testing via configuration.json -> "disable_rate_limit": true
+            $rate_limit_seconds = !empty($config['disable_rate_limit']) ? 0 : 3600;
+            if ($rate_limit_seconds > 0 && $last_ts > 0 && ($now - $last_ts) < $rate_limit_seconds) {
+                $remain = $rate_limit_seconds - ($now - $last_ts);
+                $submit_result = ['ok' => false, 'error' => 'rate_limited', 'retry_after' => $remain];
+            } else {
+                // remove previous messages from same IP (if any), keep all others
+                $new_messages = array_values(array_filter($messages, function($itm) use ($myip) {
+                    return !isset($itm['ip']) || $itm['ip'] !== $myip;
+                }));
+
+                $search_clean = htmlspecialchars(strip_tags($search), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $user_id_clean = htmlspecialchars(strip_tags($user_id), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $title_clean = htmlspecialchars(strip_tags($title), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+                $record = [
+                    'title' => $title_clean !== '' ? $title_clean : '',
+                    'id' => uniqid('', true),
+                    'user_id' => $user_id_clean,
+                    'search' => $search_clean,
+                    'ip' => $myip,
+                    'ts' => $now,
+                ];
+
+                // append new message to the filtered list (keeps all other IPs' messages)
+                $new_messages[] = $record;
+                $ok = @file_put_contents($messages_file, json_encode($new_messages, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+                if ($ok === false) {
+                    $submit_result = ['ok' => false, 'error' => 'write_failed'];
+                } else {
+                    $submit_result = ['ok' => true, 'record' => $record];
+                }
+            }
+        }
+    }
+
+    $is_ajax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+        || (strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') !== false);
+
+    // On successful non-AJAX POST, use PRG: store flash and redirect to avoid resubmission on refresh
+    if (!$is_ajax && !empty($submit_result['ok'])) {
+        $_SESSION['flash_submit_result'] = $submit_result;
+        // redirect to current URL (preserve query string)
+        $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? '') . strtok($_SERVER['REQUEST_URI'], '?');
+        // priority: explicit anchor returned by handler (delete or custom), then newly created record id
+        $redirect = $base;
+        if (!empty($submit_result['anchor'])) {
+            $a = (string)$submit_result['anchor'];
+            if (strpos($a, '#') !== 0) $a = '#' . ltrim($a, '#');
+            $redirect = $base . $a;
+        } elseif (!empty($submit_result['record']['id'])) {
+            $anchor = '#msg-' . urlencode($submit_result['record']['id']);
+            $redirect = $base . $anchor;
+        }
+        header('Location: ' . $redirect);
+        exit;
+    }
+
+    if ($is_ajax) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($submit_result, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+// On GET, restore flash message if set
+if (empty($submit_result) && !empty($_SESSION['flash_submit_result'])) {
+    $submit_result = $_SESSION['flash_submit_result'];
+    unset($_SESSION['flash_submit_result']);
+}
+
+?>
+
 <!DOCTYPE html>
 <html class="no-js" lang="<?php echo htmlspecialchars($lang_code); ?>">
 
@@ -269,10 +873,6 @@
                                         if ($is_ok) {
                                             if (!empty($submit_result['deleted'])) {
                                                 $alarm_text = '删除成功。';
-                                            } elseif (!empty($submit_result['edited'])) {
-                                                $alarm_text = '编辑成功。';
-                                            } elseif (!empty($submit_result['reply'])) {
-                                                $alarm_text = '回复成功。';
                                             } elseif (!empty($submit_result['record'])) {
                                                 $alarm_text = htmlspecialchars($lang['submit-success'] ?? '提交成功。', ENT_QUOTES, 'UTF-8');
                                             } else {
@@ -284,18 +884,11 @@
                                                 $r = intval($submit_result['retry_after'] ?? 0);
                                                 $min = ceil($r/60);
                                                 $alarm_text = '您已在一小时内提交过留言，请等待 ' . $min . ' 分钟后再试。';
-                                            } elseif ($err === 'wrong_captcha') {
-                                                $alarm_text = '验证码错误，请重新输入计算结果。';
-                                            } elseif ($err === 'edit_window_expired') {
-                                                $alarm_text = '编辑窗口已过（5分钟内可编辑），无法修改此留言。';
-                                            } elseif ($err === 'not_owner') {
-                                                $alarm_text = '您只能编辑自己的留言。';
-                                            } elseif ($err === 'message_not_found') {
-                                                $alarm_text = '留言未找到，可能已被删除。';
-                                            } elseif ($err === 'parent_not_found') {
-                                                $alarm_text = '原留言未找到，无法回复。';
                                             } elseif ($err === 'missing_fields') {
                                                 $alarm_text = '请填写昵称与留言内容。';
+                                            } elseif ($err === 'blocked_word') {
+                                                $bw = htmlspecialchars($submit_result['blocked_word'] ?? '', ENT_QUOTES, 'UTF-8');
+                                                $alarm_text = '检测到屏蔽词 「' . $bw . '」，已阻止提交。';
                                             } else {
                                                 $alarm_text = htmlspecialchars($err, ENT_QUOTES, 'UTF-8');
                                             }
@@ -321,22 +914,14 @@
 
                                     <form id="guestForm" class="guest-form" method="post" action="">
                                         <input type="hidden" name="action" value="submit_message">
-                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                                         <label class="guest-label">标题（可选）：
-                                            <input class="guest-input" type="text" name="title" id="guestTitle" maxlength="150" placeholder="若无标题则默认显示为 'XXX留言了如下内容'" >
-                                            <span class="char-count" id="titleCount">0/150</span>
+                                            <input class="guest-input" type="text" name="title" maxlength="150" placeholder="若无标题则默认显示为“XXX留言了如下内容”" >
                                         </label>
                                         <label class="guest-label">填写留言内容：
-                                            <textarea class="guest-input guest-textarea" name="search" id="guestSearch" maxlength="500" rows="3" required placeholder="在这里输入你想说的内容..."></textarea>
-                                            <span class="char-count" id="searchCount">0/500</span>
+                                            <input class="guest-input" type="text" name="search" maxlength="500" required>
                                         </label>
                                         <label class="guest-label">填写您的昵称：
-                                            <input class="guest-input" type="text" name="user_id" id="guestUserId" maxlength="100" required placeholder="你的昵称">
-                                        </label>
-                                        <label class="guest-label captcha-label">
-                                            验证码：<?php echo htmlspecialchars((string)$_SESSION['captcha_a'], ENT_QUOTES, 'UTF-8'); ?> + <?php echo htmlspecialchars((string)$_SESSION['captcha_b'], ENT_QUOTES, 'UTF-8'); ?> = ?
-                                            <input class="guest-input guest-captcha-input" type="number" name="captcha" required placeholder="请输入计算结果" autocomplete="off">
-                                            <input type="hidden" name="captcha_hash" value="<?php echo htmlspecialchars($_SESSION['captcha_hash'], ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input class="guest-input" type="text" name="user_id" maxlength="100" required>
                                         </label>
                                         <div style="margin-top:0.5em;">
                                             <button class="guest-submit" type="submit">提交留言</button>
@@ -357,34 +942,18 @@
                                     return ($b['ts'] ?? 0) <=> ($a['ts'] ?? 0);
                                 });
 
-                                $my_current_ip = $_SERVER['REMOTE_ADDR'] ?? '';
-                                $now_ts = time();
-                                ?>
-                                <div id="guestMessagesContainer">
-                                <?php if (empty($messages)): ?>
-                                    <div class="guest-empty">
-                                        <div class="guest-empty__icon">💬</div>
-                                        <p class="guest-empty__text">还没有留言，来做第一个留言的人吧！</p>
-                                    </div>
-                                <?php else: ?>
-                                <?php foreach ($messages as $m):
+                                foreach ($messages as $m):
                                     $user = htmlspecialchars($m['user_id'] ?? '用户');
                                     $content = htmlspecialchars($m['search'] ?? '');
-                                    $msg_id = $m['id'] ?? '';
-                                    $msg_ip = $m['ip'] ?? '';
-                                    $msg_ts = intval($m['ts'] ?? 0);
-                                    $msg_owner_token = $m['owner_token'] ?? '';
-                                    $is_owner = ($msg_owner_token !== '' && hash_equals($msg_owner_token, $visitor_token))
-                                             || ($msg_owner_token === '' && $msg_ip === $my_current_ip); // fallback for legacy messages
-                                    $can_edit = $is_owner && (($now_ts - $msg_ts) < 300); // 5 minutes
-                                    $is_edited = !empty($m['edited']);
                                     $month = '';
                                     $day = '';
                                     $year = '';
                                     $day_suffix = '';
-                                    if ($msg_ts) {
+                                    if (isset($m['ts'])) {
+                                        $t = (int)$m['ts'];
+                                        // force display in China timezone (UTC+8)
                                         try {
-                                            $dt = new DateTime('@' . $msg_ts);
+                                            $dt = new DateTime('@' . $t);
                                             $tzObj = new DateTimeZone('Asia/Shanghai');
                                             $dt->setTimezone($tzObj);
                                             $month = $dt->format('F');
@@ -392,6 +961,7 @@
                                             $year = $dt->format('Y');
                                             $time_hms = $dt->format('H:i:s');
                                             $tz_label = 'UTC+8';
+                                            // english ordinal suffix
                                             $mod100 = $day % 100;
                                             if ($mod100 >= 11 && $mod100 <= 13) {
                                                 $day_suffix = 'th';
@@ -404,90 +974,49 @@
                                                 }
                                             }
                                         } catch (Exception $e) {
-                                            $month = date('F', $msg_ts);
-                                            $day = (int)date('j', $msg_ts);
-                                            $year = date('Y', $msg_ts);
-                                            $time_hms = date('H:i:s', $msg_ts);
+                                            $month = date('F', $t);
+                                            $day = (int)date('j', $t);
+                                            $year = date('Y', $t);
+                                            $time_hms = date('H:i:s', $t);
                                             $tz_label = 'UTC+8';
                                         }
                                     }
                                 ?>
 
-                                <div class="guest-message" id="msg-<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>" data-msg-id="<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>">
-                                    <div class="guest-message__main">
+                                <div id="msg-<?php echo htmlspecialchars($m['id'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="resume-block__header">
+                                    <h4 class="h3">
                                         <?php if (!empty($m['title'])): ?>
-                                        <h4 class="guest-msg-title"><?php echo htmlspecialchars($m['title']); ?></h4>
+                                            <?php echo $user; ?>：<?php echo htmlspecialchars($m['title']); ?>
+                                        <?php else: ?>
+                                            <?php echo $user; ?>留言了如下内容
                                         <?php endif; ?>
-                                        <p class="guest-msg-header">
-                                            <span><?php echo $user; ?><?php if ($is_edited): ?> <span class="guest-edited-badge">（已编辑）</span><?php endif; ?></span>
-                                            <span class="guest-msg-header__date">Published on <?php echo htmlspecialchars($month . ' ' . $day); ?><sup><?php echo htmlspecialchars($day_suffix); ?></sup>, <?php echo htmlspecialchars($year); ?></span>
-                                        </p>
-
-                                        <div class="guest-message__content">
-                                            <p><?php echo $content; ?></p>
-                                        </div>
-
-                                        <!-- Edit form (hidden by default) -->
-                                        <div class="guest-edit-form" id="edit-form-<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>" style="display:none;">
-                                            <label class="guest-label">修改标题：
-                                                <input class="guest-input" type="text" name="edit_title_<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>" maxlength="150" value="<?php echo htmlspecialchars($m['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                                            </label>
-                                            <label class="guest-label">修改内容：
-                                                <textarea class="guest-input guest-textarea" name="edit_search_<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>" maxlength="500" rows="3"><?php echo htmlspecialchars($m['search'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                            </label>
-                                            <div style="margin-top:0.5em; display:flex; gap:8px;">
-                                                <button class="guest-submit guest-edit-save" data-msg-id="<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>">保存修改</button>
-                                                <button class="guest-cancel" data-msg-id="<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>">取消</button>
-                                            </div>
-                                        </div>
-
-                                        <!-- Controls: Edit, Delete -->
-                                        <?php if ($can_edit || $is_owner): ?>
-                                        <div class="guest-controls">
-                                            <?php if ($can_edit): ?>
-                                                <button class="guest-edit-btn" data-msg-id="<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>">✏️ 编辑</button>
-                                            <?php endif; ?>
-                                            <?php if ($is_owner): ?>
-                                                <button class="guest-delete guest-delete-btn" data-msg-id="<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>">🗑️ 删除</button>
-                                            <?php endif; ?>
-                                        </div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <!-- Replies -->
-                                    <?php if (!empty($m['replies']) && is_array($m['replies'])): ?>
-                                    <div class="guest-replies" id="replies-<?php echo htmlspecialchars($msg_id, ENT_QUOTES, 'UTF-8'); ?>">
-                                        <?php foreach (array_reverse($m['replies']) as $reply): ?>
-                                        <div class="guest-reply-item" id="reply-<?php echo htmlspecialchars($reply['id'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                                            <div class="guest-reply-meta">
-                                                <strong><?php echo htmlspecialchars($reply['user_id'] ?? '匿名'); ?></strong>
-                                                <span class="guest-reply-time">
-                                                    <?php
-                                                    $rt = intval($reply['ts'] ?? 0);
-                                                    if ($rt) {
-                                                        try {
-                                                            $rdt = new DateTime('@' . $rt);
-                                                            $rdt->setTimezone(new DateTimeZone('Asia/Shanghai'));
-                                                            echo 'Posted on ' . htmlspecialchars($rdt->format('M j, Y')) . '. ' . htmlspecialchars($rdt->format('H:i')) . ' (UTC+8)';
-                                                        } catch (Exception $e) {
-                                                            echo 'Posted on ' . date('M j, Y', $rt) . '. ' . date('H:i', $rt) . ' (UTC+8)';
-                                                        }
-                                                    }
-                                                    ?>
-                                                </span>
-                                            </div>
-                                            <p class="guest-reply-content"><?php echo htmlspecialchars($reply['search'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <?php endif; ?>
+                                    </h4>
+                                    <p class="resume-block__header-meta">
+                                        <span><?php echo $user; ?></span>
+                                        <span class="resume-block__header-date">
+                                            Published on <?php echo htmlspecialchars($month . ' ' . $day); ?><sup><?php echo htmlspecialchars($day_suffix); ?></sup>, <?php echo htmlspecialchars($year); ?> <?php echo htmlspecialchars($time_hms ?? date('H:i:s', isset($m['ts']) ? (int)$m['ts'] : time()), ENT_QUOTES, 'UTF-8'); ?> <?php echo isset($tz_label) ? '(' . htmlspecialchars($tz_label, ENT_QUOTES, 'UTF-8') . ')' : ''; ?>
+                                        </span>
+                                    </p>
                                 </div>
+
+                                <p>
+                                    <?php echo $content; ?>
+                                </p>
+
+                                <?php if (isset($m['ip']) && $m['ip'] === ($_SERVER['REMOTE_ADDR'] ?? '')): ?>
+                                    <div class="guest-controls guest-controls-left">
+                                        <form method="post" class="guest-delete-form" onsubmit="return confirm('确认删除你的留言？');">
+                                            <input type="hidden" name="action" value="delete_message">
+                                            <input type="hidden" name="delete_id" value="<?php echo htmlspecialchars($m['id'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="anchor" value="#msg-<?php echo htmlspecialchars($m['id'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                            <button type="submit" class="guest-delete guest-delete-btn">删除</button>
+                                        </form>
+                                    </div>
+                                <?php endif; ?>
 
                                 <hr style="border: none; border-top: 2px dashed #00bfae; margin: 2.5em 0; width: 80%;">
 
                                 <?php endforeach; ?>
-                                <?php endif; ?>
-                                </div><!-- #guestMessagesContainer -->
 
                                 <div class="resume-block__header">
                                     <h4 class="h3"><?php echo htmlspecialchars($lang['post002-title'] ?? ''); ?>
@@ -904,6 +1433,7 @@
                                 </section>
     </div>
 
+
     <!-- testimonials
         ================================================== -->
     <section id="testimonials" class="s-testimonials target-section">
@@ -926,7 +1456,7 @@
 
                         <div class="testimonial-slider__slide swiper-slide">
                             <div class="testimonial-slider__author">
-                                <img src="https://q1.qlogo.cn/g?b=qq&nk=3329261270&s=100" alt="Author image"
+                                <img src="http://q1.qlogo.cn/g?b=qq&nk=3329261270&s=100" alt="Author image"
                                     class="testimonial-slider__avatar">
                                 <cite class="testimonial-slider__cite">
                                     <strong>Entertainment_YH</strong>
@@ -940,7 +1470,7 @@
 
                         <div class="testimonial-slider__slide swiper-slide">
                             <div class="testimonial-slider__author">
-                                <img src="https://q1.qlogo.cn/g?b=qq&nk=439751420&s=100" alt="Author image"
+                                <img src="http://q1.qlogo.cn/g?b=qq&nk=439751420&s=100" alt="Author image"
                                     class="testimonial-slider__avatar">
                                 <cite class="testimonial-slider__cite">
                                     <strong>QN</strong>
@@ -1061,7 +1591,6 @@
         <script src="js/plugins.js"></script>
         <script src="js/main.js"></script>
         <script src="js/statistics-chart.js"></script>
-    <script src="js/guest-messages.js"></script>
         <script>
             window.chartLang = {
                 daily: "<?php echo htmlspecialchars($lang['statistics-daily'] ?? '每日访问量'); ?>",
@@ -1243,9 +1772,20 @@
                 t.addEventListener('click', function(){ hideToast(t, 10); });
             });
 
+            // bind to guest form to show intermediate prompts during submit
+            try {
+                var gf = document.getElementById('guestForm');
+                if (gf) {
+                    gf.addEventListener('submit', function(e){
+                        try { window.showToast('请稍后，AI 正在检测文本是否存在违规...', {kind:'info', sticky:true}); } catch(err){}
+                        try { window.showToast('正在提交，请稍候...', {kind:'success', delay:5000}); } catch(err){}
+                    });
+                }
+            } catch(e){}
+
             // bind to delete forms to show quick feedback
             try {
-                var dels = document.querySelectorAll(".guest-delete-form");
+                var dels = document.querySelectorAll('.guest-delete-form');
                 dels.forEach(function(df){ df.addEventListener('submit', function(){ window.showToast('删除中，请稍候...', {kind:'info', sticky:false}); }); });
             } catch(e){}
         });
